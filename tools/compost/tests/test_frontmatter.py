@@ -1,5 +1,5 @@
 from pathlib import Path
-from team_context.model.frontmatter import parse_frontmatter, validate_frontmatter
+from compost.model.frontmatter import parse_frontmatter, validate_frontmatter
 
 
 def test_parse_valid_frontmatter(tmp_path: Path) -> None:

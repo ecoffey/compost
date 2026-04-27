@@ -24,7 +24,7 @@ def _make_dirs(repo: Path) -> None:
 
 
 def _write_config(repo: Path, name: str) -> None:
-    (repo / ".team-context.yml").write_text(yaml.dump({"name": name, "qmd_index": name}))
+    (repo / ".compost.yml").write_text(yaml.dump({"name": name, "qmd_index": name}))
 
 
 def _write_codeowners(repo: Path) -> None:

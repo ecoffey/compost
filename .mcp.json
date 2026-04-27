@@ -1,10 +1,10 @@
 {
   "mcpServers": {
-    "team-context": {
-      "command": "/Users/eoin/workspace/team-context/tools/team_context/.venv/bin/tc",
+    "compost": {
+      "command": "/Users/eoin/workspace/team-context/tools/compost/.venv/bin/compost",
       "args": ["mcp"],
       "env": {
-        "TC_REPO": "/Users/eoin/local-test/team-context-test"
+        "COMPOST_REPO": "/Users/eoin/local-test/team-context-test"
       }
     }
   }

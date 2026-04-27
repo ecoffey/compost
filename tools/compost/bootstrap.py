@@ -43,7 +43,7 @@ def bootstrap_repo(path: Path, name: str) -> None:
         (path / d / ".gitkeep").touch()
 
     config = {"name": name, "qmd_index": name}
-    (path / ".team-context.yml").write_text(yaml.dump(config))
+    (path / ".compost.yml").write_text(yaml.dump(config))
 
     codeowners = (
         "# CODEOWNERS for wiki content.\n"

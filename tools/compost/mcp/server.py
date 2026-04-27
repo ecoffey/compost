@@ -7,10 +7,10 @@ from mcp.server import Server
 from mcp.server.stdio import stdio_server
 from mcp.types import TextContent, Tool
 
-from team_context.mcp.tools import load_service_context, query_wiki
-from team_context.repo import load_repo_config
+from compost.mcp.tools import load_service_context, query_wiki
+from compost.repo import load_repo_config
 
-server = Server("team-context")
+server = Server("compost")
 
 _active_repo: Path = Path.cwd()
 

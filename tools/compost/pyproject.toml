@@ -3,7 +3,7 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "team-context"
+name = "compost"
 version = "0.1.0"
 requires-python = ">=3.11"
 dependencies = [
@@ -15,7 +15,7 @@ dependencies = [
 ]
 
 [project.scripts]
-tc = "team_context.cli:main"
+compost = "compost.cli:main"
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0", "pytest-asyncio>=0.23"]
@@ -23,9 +23,9 @@ dev = ["pytest>=8.0", "pytest-asyncio>=0.23"]
 [tool.setuptools]
 package-dir = {"" = ".."}
 packages = [
-    "team_context",
-    "team_context.model",
-    "team_context.mcp",
+    "compost",
+    "compost.model",
+    "compost.mcp",
 ]
 
 [tool.pytest.ini_options]

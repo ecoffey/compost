@@ -1,13 +1,13 @@
 from pathlib import Path
 from unittest.mock import patch
 
-from team_context.cli import _run_doctor_checks
+from compost.cli import _run_doctor_checks
 
 
 def test_doctor_passes_on_clean_repo(wiki_repo: Path) -> None:
     with (
-        patch("team_context.cli.subprocess.run") as mock_run,
-        patch("team_context.cli._qmd_collections") as mock_cols,
+        patch("compost.cli.subprocess.run") as mock_run,
+        patch("compost.cli._qmd_collections") as mock_cols,
     ):
         mock_run.return_value.returncode = 0
         mock_cols.return_value = {"wiki", "raw", "decisions", "incidents"}
@@ -22,8 +22,8 @@ def test_doctor_fails_missing_codeowners(wiki_repo: Path) -> None:
     (wiki_repo / ".github" / "CODEOWNERS").unlink()
 
     with (
-        patch("team_context.cli.subprocess.run") as mock_run,
-        patch("team_context.cli._qmd_collections") as mock_cols,
+        patch("compost.cli.subprocess.run") as mock_run,
+        patch("compost.cli._qmd_collections") as mock_cols,
     ):
         mock_run.return_value.returncode = 0
         mock_cols.return_value = {"wiki", "raw", "decisions", "incidents"}
@@ -38,8 +38,8 @@ def test_doctor_fails_missing_codeowners(wiki_repo: Path) -> None:
 
 def test_doctor_fails_missing_qmd_collection(wiki_repo: Path) -> None:
     with (
-        patch("team_context.cli.subprocess.run") as mock_run,
-        patch("team_context.cli._qmd_collections") as mock_cols,
+        patch("compost.cli.subprocess.run") as mock_run,
+        patch("compost.cli._qmd_collections") as mock_cols,
     ):
         mock_run.return_value.returncode = 0
         mock_cols.return_value = {"wiki"}  # missing raw, decisions, incidents
@@ -60,8 +60,8 @@ def test_doctor_fails_wiki_page_missing_sources(wiki_repo: Path) -> None:
         "sources: []\n---\n\n# Broken\n"
     )
     with (
-        patch("team_context.cli.subprocess.run") as mock_run,
-        patch("team_context.cli._qmd_collections") as mock_cols,
+        patch("compost.cli.subprocess.run") as mock_run,
+        patch("compost.cli._qmd_collections") as mock_cols,
     ):
         mock_run.return_value.returncode = 0
         mock_cols.return_value = {"wiki", "raw", "decisions", "incidents"}

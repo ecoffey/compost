@@ -6,16 +6,16 @@ import click
 from rich.console import Console
 from rich.table import Table
 
-from team_context.model.frontmatter import validate_frontmatter, parse_frontmatter
-from team_context.repo import find_repo_root, load_repo_config
-from team_context.session import list_sessions, find_session, format_session
+from compost.model.frontmatter import validate_frontmatter, parse_frontmatter
+from compost.repo import find_repo_root, load_repo_config
+from compost.session import list_sessions, find_session, format_session
 
 console = Console()
 
 
 @click.group()
-@click.option("--repo", envvar="TC_REPO", default=None,
-              help="Path to wiki repo. Falls back to TC_REPO env var then cwd walk.")
+@click.option("--repo", envvar="COMPOST_REPO", default=None,
+              help="Path to wiki repo. Falls back to COMPOST_REPO env var then cwd walk.")
 @click.pass_context
 def main(ctx: click.Context, repo: str | None) -> None:
     ctx.ensure_object(dict)
@@ -28,7 +28,7 @@ def doctor(ctx: click.Context) -> None:
     """Verify repo health: qmd collections, frontmatter, CODEOWNERS."""
     repo = ctx.obj["repo"] or find_repo_root(Path.cwd())
     if repo is None:
-        console.print("[red]No .team-context.yml found in cwd or any parent.[/red]")
+        console.print("[red]No .compost.yml found in cwd or any parent.[/red]")
         sys.exit(1)
 
     checks = _run_doctor_checks(repo)
@@ -42,11 +42,11 @@ def doctor(ctx: click.Context) -> None:
 def mcp_serve(ctx: click.Context) -> None:
     """Start the MCP server (stdio transport)."""
     import asyncio
-    from team_context.mcp.server import run_server
+    from compost.mcp.server import run_server
 
     repo = ctx.obj["repo"] or find_repo_root(Path.cwd())
     if repo is None:
-        console.print("[red]No .team-context.yml found. Run tc init first.[/red]")
+        console.print("[red]No .compost.yml found. Run compost init first.[/red]")
         sys.exit(1)
     asyncio.run(run_server(repo))
 
@@ -55,8 +55,8 @@ def mcp_serve(ctx: click.Context) -> None:
 @click.argument("path", default=".", type=click.Path())
 @click.option("--name", required=True, help="Team name (used as qmd index name).")
 def init(path: str, name: str) -> None:
-    """Bootstrap a new team-context wiki repo at PATH."""
-    from team_context.bootstrap import bootstrap_repo
+    """Bootstrap a new compost wiki repo at PATH."""
+    from compost.bootstrap import bootstrap_repo
     bootstrap_repo(Path(path).resolve(), name)
 
 
@@ -71,7 +71,7 @@ def session_list(ctx: click.Context) -> None:
     """List sessions for the current repo."""
     repo = ctx.obj["repo"] or find_repo_root(Path.cwd())
     if repo is None:
-        console.print("[red]No .team-context.yml found.[/red]")
+        console.print("[red]No .compost.yml found.[/red]")
         sys.exit(1)
 
     sessions = list_sessions(repo)
@@ -112,7 +112,7 @@ def _run_doctor_checks(repo: Path) -> list[tuple[str, bool, str]]:
     index_name = config["qmd_index"]
     checks: list[tuple[str, bool, str]] = []
 
-    checks.append((".team-context.yml present", True, ""))
+    checks.append((".compost.yml present", True, ""))
 
     result = subprocess.run(["qmd", "--version"], capture_output=True)
     checks.append(("qmd binary", result.returncode == 0,
