@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "team-context": {
+      "command": "/Users/eoin/workspace/team-context/tools/team_context/.venv/bin/tc",
+      "args": ["mcp"],
+      "env": {
+        "TC_REPO": "/Users/eoin/local-test/team-context-test"
+      }
+    }
+  }
+}

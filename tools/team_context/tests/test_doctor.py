@@ -1,0 +1,74 @@
+from pathlib import Path
+from unittest.mock import patch
+
+from team_context.cli import _run_doctor_checks
+
+
+def test_doctor_passes_on_clean_repo(wiki_repo: Path) -> None:
+    with (
+        patch("team_context.cli.subprocess.run") as mock_run,
+        patch("team_context.cli._qmd_collections") as mock_cols,
+    ):
+        mock_run.return_value.returncode = 0
+        mock_cols.return_value = {"wiki", "raw", "decisions", "incidents"}
+
+        checks = _run_doctor_checks(wiki_repo)
+
+    failed = [(name, msg) for name, ok, msg in checks if not ok]
+    assert failed == [], f"Expected all checks to pass, got failures: {failed}"
+
+
+def test_doctor_fails_missing_codeowners(wiki_repo: Path) -> None:
+    (wiki_repo / ".github" / "CODEOWNERS").unlink()
+
+    with (
+        patch("team_context.cli.subprocess.run") as mock_run,
+        patch("team_context.cli._qmd_collections") as mock_cols,
+    ):
+        mock_run.return_value.returncode = 0
+        mock_cols.return_value = {"wiki", "raw", "decisions", "incidents"}
+
+        checks = _run_doctor_checks(wiki_repo)
+
+    codeowners_check = next(
+        (ok for name, ok, _ in checks if "CODEOWNERS" in name), None
+    )
+    assert codeowners_check is False
+
+
+def test_doctor_fails_missing_qmd_collection(wiki_repo: Path) -> None:
+    with (
+        patch("team_context.cli.subprocess.run") as mock_run,
+        patch("team_context.cli._qmd_collections") as mock_cols,
+    ):
+        mock_run.return_value.returncode = 0
+        mock_cols.return_value = {"wiki"}  # missing raw, decisions, incidents
+
+        checks = _run_doctor_checks(wiki_repo)
+
+    coll_check = next(
+        (ok for name, ok, _ in checks if "collection" in name), None
+    )
+    assert coll_check is False
+
+
+def test_doctor_fails_wiki_page_missing_sources(wiki_repo: Path) -> None:
+    bad_page = wiki_repo / "wiki" / "services" / "broken.md"
+    bad_page.write_text(
+        "---\ntype: service\nname: broken\nowners: [alice]\n"
+        "status: active\nupdated: 2026-01-01\nconfidence: high\n"
+        "sources: []\n---\n\n# Broken\n"
+    )
+    with (
+        patch("team_context.cli.subprocess.run") as mock_run,
+        patch("team_context.cli._qmd_collections") as mock_cols,
+    ):
+        mock_run.return_value.returncode = 0
+        mock_cols.return_value = {"wiki", "raw", "decisions", "incidents"}
+
+        checks = _run_doctor_checks(wiki_repo)
+
+    fm_check = next(
+        (ok for name, ok, _ in checks if "frontmatter" in name), None
+    )
+    assert fm_check is False
