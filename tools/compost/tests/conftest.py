@@ -1,4 +1,6 @@
+import subprocess
 from pathlib import Path
+
 import pytest
 import yaml
 
@@ -61,3 +63,40 @@ def _write_seed_pages(repo: Path) -> None:
         "---\n\n# Idempotency\n\n"
         "Stripe requires idempotency keys on payment intent creation.\n"
     )
+
+
+@pytest.fixture
+def git_repo(tmp_path: Path) -> Path:
+    """A minimal git repo with an initial commit on main."""
+    repo = tmp_path / "git-wiki"
+    repo.mkdir()
+    subprocess.run(["git", "init"], cwd=repo, check=True, capture_output=True)
+    subprocess.run(["git", "config", "user.email", "test@test.com"],
+                   cwd=repo, check=True, capture_output=True)
+    subprocess.run(["git", "config", "user.name", "Test User"],
+                   cwd=repo, check=True, capture_output=True)
+    subprocess.run(["git", "config", "commit.gpgsign", "false"],
+                   cwd=repo, check=True, capture_output=True)
+    subprocess.run(["git", "commit", "--allow-empty", "-m", "initial"],
+                   cwd=repo, check=True, capture_output=True)
+    # Normalize to main
+    result = subprocess.run(
+        ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+        cwd=repo, capture_output=True, text=True, check=True,
+    )
+    if result.stdout.strip() != "main":
+        subprocess.run(["git", "branch", "-m", result.stdout.strip(), "main"],
+                       cwd=repo, check=True, capture_output=True)
+    return repo
+
+
+@pytest.fixture
+def compost_git_repo(git_repo: Path) -> Path:
+    """A git repo that is also a valid compost wiki instance."""
+    (git_repo / ".compost.yml").write_text(
+        yaml.dump({"name": "test-wiki", "qmd_index": "test-wiki"})
+    )
+    subprocess.run(["git", "add", ".compost.yml"], cwd=git_repo, check=True)
+    subprocess.run(["git", "commit", "-m", "add compost config"],
+                   cwd=git_repo, check=True, capture_output=True)
+    return git_repo

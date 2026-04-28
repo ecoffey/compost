@@ -12,7 +12,7 @@
 
 **Backlog items considered:** none of the three backlog entries (persistent qmd process, qmd isolation verification, synthesis observability) are relevant to Phase 2. All remain parked for Phase 8/10.
 
-**Pre-condition:** the test wiki at `~/local-test/team-context-test` is not yet a git repository. Phase 2 requires git. The `tc raw add` command will error clearly if the repo has no `.git` — the user runs `git init` once before using the Phase 2 commands.
+**Pre-condition:** the test wiki at `~/local-test/compost-test` is not yet a git repository. Phase 2 requires git. The `compost raw add` command will error clearly if the repo has no `.git` — the user runs `git init` once before using the Phase 2 commands.
 
 ---
 
@@ -22,11 +22,11 @@
 
 | Module | Status | Change |
 |--------|--------|--------|
-| `team_context/ingest/raw.py` | new | Raw file path resolution, frontmatter generation, file writing |
-| `team_context/ingest/git.py` | new | Git branch/commit/merge/status operations |
-| `team_context/ingest/pr.py` | new | Local PR log creation and merge gate |
-| `team_context/cli.py` | extend | Add `tc raw` and `tc pr` command groups |
-| `team_context/pyproject.toml` | extend | Add `team_context.ingest` to packages list |
+| `compost/ingest/raw.py` | new | Raw file path resolution, frontmatter generation, file writing |
+| `compost/ingest/git.py` | new | Git branch/commit/merge/status operations |
+| `compost/ingest/pr.py` | new | Local PR log creation and merge gate |
+| `compost/cli.py` | extend | Add `compost raw` and `compost pr` command groups |
+| `compost/pyproject.toml` | extend | Add `compost.ingest` to packages list |
 | `README.md` | extend | Add Phase 2 commands to CLI reference |
 
 ### Data flow
@@ -52,7 +52,7 @@ ingest/git.py
 CLI output:
   ✓ raw/slack/2026/04/2026-04-27-eng-payments-standup.md
   branch: raw/2026-04-27-payments-standup
-  Review with: tc pr open
+  Review with: compost pr open
 ```
 
 ```
@@ -69,7 +69,7 @@ ingest/pr.py
   print path
 ```
 
-`_plans/` is part of the wiki repo layout (see module layout in the high-level plan). PR logs live there because they are repo-local draft state — the local equivalent of a GitHub PR. In Phase 5, adversarial check results will be written back into this same file before `tc pr merge` is allowed to proceed. Writing to a file (rather than just printing) is what makes that future write-back possible.
+`_plans/` is part of the wiki repo layout (see module layout in the high-level plan). PR logs live there because they are repo-local draft state — the local equivalent of a GitHub PR. In Phase 5, adversarial check results will be written back into this same file before `compost pr merge` is allowed to proceed. Writing to a file (rather than just printing) is what makes that future write-back possible.
 
 ```
 tc pr merge
@@ -95,7 +95,7 @@ All path logic lives exclusively in `ingest/raw.py`.
 | `meeting` | `raw/meetings/{YYYY}-{MM}-{DD}-{slug}.md` |
 | `support` | `raw/support/{YYYY}-{MM}-{DD}-{slug}.md` |
 
-All names use the date as the ordering key — no sequence number scanning required. The `INC-` prefix on incidents is kept for easy visual correlation with incident management systems (PagerDuty, etc.). The existing seed file `INC-0001-payment-timeout.md` was hand-authored with a sequence number; new files from `tc raw add` will use the date-based format.
+All names use the date as the ordering key — no sequence number scanning required. The `INC-` prefix on incidents is kept for easy visual correlation with incident management systems (PagerDuty, etc.). The existing seed file `INC-0001-payment-timeout.md` was hand-authored with a sequence number; new files from `compost raw add` will use the date-based format.
 
 ### Raw file frontmatter
 
@@ -114,7 +114,7 @@ origin: "#eng 2026-04-27"   # from --origin, else empty
 ### Core domain objects
 
 ```python
-# team_context/ingest/raw.py
+# compost/ingest/raw.py
 
 SOURCE_TYPES = Literal["slack", "incident", "decision", "note", "meeting", "support"]
 
@@ -139,7 +139,7 @@ def write_raw(
 ```
 
 ```python
-# team_context/ingest/git.py
+# compost/ingest/git.py
 
 def assert_git_repo(repo: Path) -> None:
     """Raise click.UsageError if repo has no .git directory."""
@@ -165,7 +165,7 @@ def fast_forward_merge(repo: Path, branch: str) -> None:
 ```
 
 ```python
-# team_context/ingest/pr.py
+# compost/ingest/pr.py
 
 @dataclass(frozen=True)
 class PRLog:
@@ -189,7 +189,7 @@ def merge_pr(repo: Path) -> None:
 - raw/slack/2026/04/2026-04-27-eng-payments-standup.md
 
 ---
-*Review complete? Merge with `tc pr merge`.*
+*Review complete? Merge with `compost pr merge`.*
 ```
 
 Written to `{repo}/_plans/pr-log/raw-2026-04-27-payments-standup.md`.
@@ -216,25 +216,25 @@ tc pr merge
 ### Steel thread
 
 ```
-cd ~/local-test/team-context-test
+cd ~/local-test/compost-test
 git init && git add -A && git commit -m "initial wiki content"
 
 echo "Discussed retry ownership. Alice owns it." | \
-  TC_REPO=. tc raw add --source note --title "retry ownership discussion"
+  COMPOST_REPO=. compost raw add --source note --title "retry ownership discussion"
 
 # → creates raw/notes/2026-04-27-retry-ownership-discussion.md
 # → creates branch raw/2026-04-27-retry-ownership-discussion
 
-TC_REPO=. tc pr open
+COMPOST_REPO=. compost pr open
 # → writes _plans/pr-log/raw-2026-04-27-retry-ownership-discussion.md
 
-TC_REPO=. tc pr merge
+COMPOST_REPO=. compost pr merge
 # → fast-forward merges into main
 ```
 
 ### Documentation updates
 
-- **README.md**: add `tc raw add`, `tc pr open`, `tc pr merge` to the CLI reference section. Note the git pre-condition.
+- **README.md**: add `compost raw add`, `compost pr open`, `compost pr merge` to the CLI reference section. Note the git pre-condition.
 
 ---
 
@@ -246,9 +246,9 @@ TC_REPO=. tc pr merge
 
 **Date-based naming:** all raw file names use the capture date as the ordering key. No sequence number scanning needed. The `INC-` prefix on incidents is kept for visual correlation with external incident systems but carries no numeric sequence.
 
-**`tc pr merge` wiki-edit guard:** `changed_files` diffs the branch against the default branch. If any path starts with `wiki/`, merge is blocked. This guard prevents accidentally auto-merging synthesis output in Phase 4+ before checks have run.
+**`compost pr merge` wiki-edit guard:** `changed_files` diffs the branch against the default branch. If any path starts with `wiki/`, merge is blocked. This guard prevents accidentally auto-merging synthesis output in Phase 4+ before checks have run.
 
-**PR log purpose:** the PR log is the local substitute for a GitHub PR. It records what files are being proposed for merging and gives the developer a file to open and review before running `tc pr merge`. It also serves as the write-back target in Phase 5, when adversarial check results will be appended to this file. `tc pr merge` will be blocked unless checks have passed (Phase 5+); in Phase 2 it merges freely. The log lives in `_plans/pr-log/` inside the wiki repo — `_plans/` is part of the wiki repo layout (see module layout in the high-level plan).
+**PR log purpose:** the PR log is the local substitute for a GitHub PR. It records what files are being proposed for merging and gives the developer a file to open and review before running `compost pr merge`. It also serves as the write-back target in Phase 5, when adversarial check results will be appended to this file. `compost pr merge` will be blocked unless checks have passed (Phase 5+); in Phase 2 it merges freely. The log lives in `_plans/pr-log/` inside the wiki repo — `_plans/` is part of the wiki repo layout (see module layout in the high-level plan).
 
 ---
 
@@ -265,6 +265,6 @@ TC_REPO=. tc pr merge
 > Original comment 1 (verbatim): `^^ why are we writing to _plans/ in the wiki (e.g. the test wiki)? ^^`
 > Original comment 2 (verbatim): `^^ what is the pr log for? ^^`
 >
-> Context: comments appeared in the `tc pr open` data flow and in the design notes.
+> Context: comments appeared in the `compost pr open` data flow and in the design notes.
 >
 > Incorporated: added inline explanation of `_plans/` as part of the wiki repo layout (per the high-level plan's module layout), and added a dedicated "PR log purpose" note explaining the Phase 2 use (human review), the Phase 5 use (check results write-back), and why a file rather than stdout.

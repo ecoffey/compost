@@ -107,6 +107,113 @@ def session_show(session_id: str, tools_only: bool, mcp_only: bool, snippet: int
     console.print(output)
 
 
+# ── raw commands ─────────────────────────────────────────────────────────────
+
+SOURCE_CHOICES = ["slack", "incident", "decision", "note", "meeting", "support"]
+
+
+@main.group("raw")
+def raw_group() -> None:
+    """Manage raw source ingestion."""
+
+
+@raw_group.command("add")
+@click.option("--source", required=True, type=click.Choice(SOURCE_CHOICES),
+              help="Source type.")
+@click.option("--title", required=True, help="Human-readable title (slug + frontmatter).")
+@click.option("--captured-by", default=None,
+              help="Author. Defaults to git config user.name.")
+@click.option("--origin", default="",
+              help="Source reference (e.g. PagerDuty ID, Slack URL).")
+@click.option("--channel", default="",
+              help="Slack channel name. Required when --source=slack.")
+@click.pass_context
+def raw_add(ctx: click.Context, source: str, title: str, captured_by: str | None,
+            origin: str, channel: str) -> None:
+    """Add a raw source file from stdin and commit it on a new branch."""
+    from datetime import datetime, timezone
+
+    from compost.ingest.git import assert_git_repo, create_branch_and_commit, get_git_user_name
+    from compost.ingest.raw import slugify, write_raw
+
+    repo = ctx.obj["repo"] or find_repo_root(Path.cwd())
+    if repo is None:
+        console.print("[red]No .compost.yml found.[/red]")
+        sys.exit(1)
+
+    assert_git_repo(repo)
+
+    body = click.get_text_stream("stdin").read()
+
+    if captured_by is None:
+        captured_by = get_git_user_name(repo)
+
+    try:
+        raw_file = write_raw(
+            repo, source, title, body,
+            captured_by=captured_by,
+            origin=origin,
+            channel=channel,
+        )
+    except ValueError as e:
+        console.print(f"[red]{e}[/red]")
+        sys.exit(1)
+
+    ts = datetime.now(timezone.utc)
+    branch = f"raw/{ts:%Y-%m-%d}-{slugify(title)}"
+
+    create_branch_and_commit(
+        repo, branch, [raw_file.path],
+        message=f"raw: {title}",
+    )
+
+    console.print(f"[green]✓[/green] {raw_file.rel_path}")
+    console.print(f"branch: {branch}")
+    console.print(f"Review with: [bold]compost pr open[/bold]")
+
+
+# ── pr commands ──────────────────────────────────────────────────────────────
+
+
+@main.group("pr")
+def pr_group() -> None:
+    """Manage local PR log and merge."""
+
+
+@pr_group.command("open")
+@click.pass_context
+def pr_open(ctx: click.Context) -> None:
+    """Write a local PR log for the current raw/* branch."""
+    from compost.ingest.git import current_branch
+    from compost.ingest.pr import open_pr
+
+    repo = ctx.obj["repo"] or find_repo_root(Path.cwd())
+    if repo is None:
+        console.print("[red]No .compost.yml found.[/red]")
+        sys.exit(1)
+
+    branch = current_branch(repo)
+    pr_log = open_pr(repo, branch)
+    console.print(f"[green]✓[/green] {pr_log.path.relative_to(repo)}")
+
+
+@pr_group.command("merge")
+@click.pass_context
+def pr_merge(ctx: click.Context) -> None:
+    """Fast-forward merge the current raw/* branch into the default branch."""
+    from compost.ingest.pr import merge_pr
+
+    repo = ctx.obj["repo"] or find_repo_root(Path.cwd())
+    if repo is None:
+        console.print("[red]No .compost.yml found.[/red]")
+        sys.exit(1)
+
+    merge_pr(repo)
+    console.print("[green]merged[/green]")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+
 def _run_doctor_checks(repo: Path) -> list[tuple[str, bool, str]]:
     config = load_repo_config(repo)
     index_name = config["qmd_index"]

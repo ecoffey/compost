@@ -4,16 +4,16 @@ Parking lot for ideas and architectural questions that aren't ready for a phase 
 
 ---
 
-## Architecture: single persistent qmd/team-context process
+## Architecture: single persistent qmd/compost process
 
 **Context:** The current design starts a fresh `tc mcp` process per Claude Code session. Each process spawns `qmd` as subprocesses, which cold-loads the embedding model on first query (~1s warmup). We added a warmup call in `run_server` as a short-term fix.
 
-**Idea:** Run one persistent qmd or team-context process per machine that stays alive across sessions. This would:
+**Idea:** Run one persistent qmd or compost process per machine that stays alive across sessions. This would:
 - Eliminate the per-session warmup cost entirely (model stays loaded)
 - Allow a single process to serve multiple wiki instances simultaneously
 - Enable smarter caching (e.g. keep recently-retrieved pages warm in memory)
 
-**Related:** `qmd` already has its own MCP server mode (`qmd mcp`, stdio transport). Investigate whether we can use `qmd mcp` directly — either by pointing Claude Code at it instead of `tc mcp`, or by having `tc mcp` talk to a running `qmd mcp` process over a local socket instead of shelling out per query. This would offload model management entirely to qmd and let `tc` focus on the team-context routing and tool shaping.
+**Related:** `qmd` already has its own MCP server mode (`qmd mcp`, stdio transport). Investigate whether we can use `qmd mcp` directly — either by pointing Claude Code at it instead of `compost mcp`, or by having `compost mcp` talk to a running `qmd mcp` process over a local socket instead of shelling out per query. This would offload model management entirely to qmd and let `compost` focus on the compost routing and tool shaping.
 
 **When to revisit:** Phase 8 (long-running synthesis daemon) is a natural moment — we'll already be building persistent background processes at that point.
 
@@ -34,7 +34,7 @@ If isolation is NOT guaranteed, collection names across different wiki instances
 **Context:** Deferred from the Phase 4 plan. Before the synthesis pipeline is used daily, there needs to be a way to observe it: watch invocations, inspect LLM session input/output, track token cost per run.
 
 **Minimum viable form:**
-- Structured JSONL event log per synthesis run written to `.team-context/synth-log/`
+- Structured JSONL event log per synthesis run written to `.compost/synth-log/`
 - `tc synth log` view command that renders recent runs (inputs, outputs, cost, pass/fail)
 
 **Full form (eventual):** a richer dashboard surface, likely a local web UI or a rendered markdown report, covering invocation history, cost trends, and diff previews.

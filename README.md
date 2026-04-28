@@ -1,38 +1,38 @@
-# team-context
+# compost
 
-Source repo for the `team_context` Python package and `tc` CLI.
+Source repo for the `compost` Python package and CLI.
 
 ## What this is
 
-`team_context` is a toolkit for running a structured, LLM-maintained team knowledge base. It implements the ingestion, synthesis, adversarial check, and MCP access layers described in `team-context-spec.md`.
+`compost` is a toolkit for running a structured, LLM-maintained team knowledge base. It implements the ingestion, synthesis, adversarial check, and MCP access layers described in `team-context-spec.md`.
 
-This repo is the **implementation source**. The actual knowledge wikis (team, org, engineering instances) are separate repos created with `tc init`.
+This repo is the **implementation source**. The actual knowledge wikis (team, org, engineering instances) are separate repos created with `compost init`.
 
 ## Setup
 
 ```bash
-pip install -e tools/team_context/
+pip install -e tools/compost/
 ```
 
 Or with uv:
 
 ```bash
-uv pip install -e tools/team_context/
+uv pip install -e tools/compost/
 ```
 
 Then bootstrap a wiki instance:
 
 ```bash
-tc init ~/my-team-wiki --name my-team
+compost init ~/my-team-wiki --name my-team
 cd ~/my-team-wiki
-tc doctor
+compost doctor
 ```
 
 ## Running the MCP server
 
 ```bash
 cd ~/my-team-wiki
-tc mcp
+compost mcp
 ```
 
 Register this in your Claude Code MCP config to give agents access to the wiki:
@@ -40,19 +40,78 @@ Register this in your Claude Code MCP config to give agents access to the wiki:
 ```json
 {
   "mcpServers": {
-    "team-context": {
-      "command": "tc",
+    "compost": {
+      "command": "compost",
       "args": ["mcp"],
-      "env": { "TC_REPO": "/path/to/my-team-wiki" }
+      "env": { "COMPOST_REPO": "/path/to/my-team-wiki" }
     }
   }
 }
 ```
 
+## Ingestion commands
+
+### `compost raw add`
+
+Capture a raw source file from stdin and commit it on a new `raw/*` branch.
+
+```bash
+echo "Discussed retry ownership. Alice owns it." | \
+  COMPOST_REPO=. compost raw add \
+    --source note \
+    --title "retry ownership discussion"
+```
+
+Options:
+
+| Flag | Description |
+|---|---|
+| `--source` | `slack\|incident\|decision\|note\|meeting\|support` (required) |
+| `--title` | Human-readable title, used for slug and frontmatter (required) |
+| `--captured-by` | Author; defaults to `git config user.name` |
+| `--origin` | Source reference (e.g. PagerDuty ID, Slack URL) |
+| `--channel` | Slack channel name; required when `--source=slack` |
+
+Body is read from stdin.
+
+### `compost pr open`
+
+Write a local PR log for the current `raw/*` branch.
+
+```bash
+COMPOST_REPO=. compost pr open
+# → writes _pr-log/raw-YYYY-MM-DD-slug.md
+```
+
+### `compost pr merge`
+
+Fast-forward merge the current `raw/*` branch into the default branch. Blocked if any `wiki/` files were modified on the branch.
+
+```bash
+COMPOST_REPO=. compost pr merge
+```
+
+### Steel thread
+
+```bash
+cd ~/local-test/my-wiki
+git init && git add -A && git commit -m "initial wiki content"
+
+echo "Discussed retry ownership. Alice owns it." | \
+  COMPOST_REPO=. compost raw add --source note --title "retry ownership discussion"
+
+COMPOST_REPO=. compost pr open
+# → writes _pr-log/raw-YYYY-MM-DD-retry-ownership-discussion.md
+# review the file, then:
+
+COMPOST_REPO=. compost pr merge
+# → fast-forward merges into main
+```
+
 ## Running tests
 
 ```bash
-cd tools/team_context
+cd tools/compost
 pip install -e ".[dev]"
 pytest
 ```
