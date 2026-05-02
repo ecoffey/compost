@@ -1,8 +1,10 @@
+import os
 import subprocess
 import sys
 from pathlib import Path
 
 import click
+import yaml
 from rich.console import Console
 from rich.table import Table
 
@@ -25,7 +27,7 @@ def main(ctx: click.Context, repo: str | None) -> None:
 @main.command()
 @click.pass_context
 def doctor(ctx: click.Context) -> None:
-    """Verify repo health: qmd collections, frontmatter, CODEOWNERS."""
+    """Verify repo health: qmd collections, frontmatter, CODEOWNERS, Gitea."""
     repo = ctx.obj["repo"] or find_repo_root(Path.cwd())
     if repo is None:
         console.print("[red]No .compost.yml found in cwd or any parent.[/red]")
@@ -130,11 +132,14 @@ def raw_group() -> None:
 @click.pass_context
 def raw_add(ctx: click.Context, source: str, title: str, captured_by: str | None,
             origin: str, channel: str) -> None:
-    """Add a raw source file from stdin and commit it on a new branch."""
+    """Add a raw source file from stdin, commit on a new branch, and open a Gitea PR."""
     from datetime import datetime, timezone
 
-    from compost.ingest.git import assert_git_repo, create_branch_and_commit, get_git_user_name
-    from compost.ingest.raw import slugify, write_raw
+    from compost.ingest.git import assert_git_repo, create_branch_and_commit, get_git_user_name, push_branch
+    from compost.ingest.pr import create_pr
+    from typing import cast
+    from compost.ingest.raw import slugify, write_raw, SOURCE_TYPES
+    from compost.gitea.client import GiteaError
 
     repo = ctx.obj["repo"] or find_repo_root(Path.cwd())
     if repo is None:
@@ -150,7 +155,7 @@ def raw_add(ctx: click.Context, source: str, title: str, captured_by: str | None
 
     try:
         raw_file = write_raw(
-            repo, source, title, body,
+            repo, cast(SOURCE_TYPES, source), title, body,
             captured_by=captured_by,
             origin=origin,
             channel=channel,
@@ -169,7 +174,15 @@ def raw_add(ctx: click.Context, source: str, title: str, captured_by: str | None
 
     console.print(f"[green]✓[/green] {raw_file.rel_path}")
     console.print(f"branch: {branch}")
-    console.print(f"Review with: [bold]compost pr open[/bold]")
+
+    try:
+        push_branch(repo, "origin", branch)
+        client = _load_gitea_client(repo)
+        pr = create_pr(repo, branch, client)
+        console.print(f"PR #{pr.number}: {pr.url}")
+    except (click.UsageError, GiteaError) as e:
+        console.print(f"[yellow]⚠ push/PR failed: {e}[/yellow]")
+        console.print("Push manually: [bold]git push origin " + branch + "[/bold]")
 
 
 # ── pr commands ──────────────────────────────────────────────────────────────
@@ -177,39 +190,162 @@ def raw_add(ctx: click.Context, source: str, title: str, captured_by: str | None
 
 @main.group("pr")
 def pr_group() -> None:
-    """Manage local PR log and merge."""
+    """Manage Gitea PRs for raw/* branches."""
 
 
 @pr_group.command("open")
 @click.pass_context
 def pr_open(ctx: click.Context) -> None:
-    """Write a local PR log for the current raw/* branch."""
+    """Print the Gitea PR URL for the current branch."""
     from compost.ingest.git import current_branch
-    from compost.ingest.pr import open_pr
+    from compost.gitea.client import GiteaError
 
     repo = ctx.obj["repo"] or find_repo_root(Path.cwd())
     if repo is None:
         console.print("[red]No .compost.yml found.[/red]")
         sys.exit(1)
 
+    client = _load_gitea_client(repo)
     branch = current_branch(repo)
-    pr_log = open_pr(repo, branch)
-    console.print(f"[green]✓[/green] {pr_log.path.relative_to(repo)}")
+
+    try:
+        pr = client.find_pr(branch)
+    except GiteaError as e:
+        console.print(f"[red]Gitea error: {e}[/red]")
+        sys.exit(1)
+
+    if pr is None:
+        console.print(f"[red]No open PR for '{branch}'. Did `compost raw add` succeed?[/red]")
+        sys.exit(1)
+
+    console.print(f"PR #{pr.number}: {pr.url}  ({pr.state})")
 
 
 @pr_group.command("merge")
 @click.pass_context
 def pr_merge(ctx: click.Context) -> None:
-    """Fast-forward merge the current raw/* branch into the default branch."""
+    """Merge the current raw/* branch via Gitea PR, then sync local repo."""
     from compost.ingest.pr import merge_pr
+    from compost.gitea.client import GiteaError
 
     repo = ctx.obj["repo"] or find_repo_root(Path.cwd())
     if repo is None:
         console.print("[red]No .compost.yml found.[/red]")
         sys.exit(1)
 
-    merge_pr(repo)
-    console.print("[green]merged[/green]")
+    client = _load_gitea_client(repo)
+
+    try:
+        pr = merge_pr(repo, client)
+        console.print(f"[green]merged[/green] (PR #{pr.number})")
+    except GiteaError as e:
+        console.print(f"[red]Gitea error: {e}[/red]")
+        sys.exit(1)
+
+
+# ── gitea commands ────────────────────────────────────────────────────────────
+
+
+@main.group("gitea")
+def gitea_group() -> None:
+    """Configure and manage the Gitea integration."""
+
+
+@gitea_group.command("setup")
+@click.option("--url", default="http://localhost:3000", show_default=True,
+              help="Gitea base URL.")
+@click.option("--owner", required=True, help="Gitea user or org login.")
+@click.option("--repo", "repo_name", default=None,
+              help="Gitea repo name. Defaults to .compost.yml 'name'.")
+@click.option("--token", default=None, envvar="GITEA_TOKEN", help="API token.")
+@click.option("--remote", default="origin", show_default=True, help="Git remote name.")
+@click.pass_context
+def gitea_setup(ctx: click.Context, url: str, owner: str, repo_name: str | None,
+                token: str | None, remote: str) -> None:
+    """Bootstrap Gitea integration: create repo, set remote, push main, update config."""
+    from compost.gitea.client import GiteaClient, GiteaError
+    from compost.ingest.git import push_branch, set_remote_url
+
+    repo = ctx.obj["repo"] or find_repo_root(Path.cwd())
+    if repo is None:
+        console.print("[red]No .compost.yml found.[/red]")
+        sys.exit(1)
+
+    if not token:
+        console.print("[red]GITEA_TOKEN not set. Export it or pass --token.[/red]")
+        sys.exit(1)
+
+    config = load_repo_config(repo)
+    gitea_repo_name = repo_name or config["name"]
+
+    client = GiteaClient(url=url, owner=owner, repo=gitea_repo_name, token=token)
+
+    try:
+        username = client.get_authenticated_user()
+        console.print(f"[green]✓[/green] authenticated as {username}")
+    except GiteaError as e:
+        console.print(f"[red]Auth failed: {e}[/red]")
+        sys.exit(1)
+
+    try:
+        client.create_repo(gitea_repo_name)
+        console.print(f"[green]✓[/green] repo {owner}/{gitea_repo_name}")
+    except GiteaError as e:
+        console.print(f"[red]Repo creation failed: {e}[/red]")
+        sys.exit(1)
+
+    clone_url = f"{url.rstrip('/')}/{owner}/{gitea_repo_name}.git"
+    set_remote_url(repo, remote, clone_url)
+    console.print(f"[green]✓[/green] remote '{remote}' → {clone_url}")
+
+    try:
+        push_branch(repo, remote, "main")
+        console.print(f"[green]✓[/green] pushed main")
+    except click.UsageError as e:
+        console.print(f"[red]{e}[/red]")
+        sys.exit(1)
+
+    config["gitea"] = {"url": url, "owner": owner, "repo": gitea_repo_name}
+    config_path = repo / ".compost.yml"
+    with config_path.open("w") as f:
+        yaml.dump(config, f, default_flow_style=False)
+    console.print("[green]✓[/green] .compost.yml updated with gitea config")
+
+    subprocess.run(["git", "add", str(config_path)], cwd=repo, check=True, capture_output=True)
+    commit = subprocess.run(
+        ["git", "commit", "-m", "gitea: configure Gitea integration"],
+        cwd=repo, capture_output=True, text=True,
+    )
+    if commit.returncode == 0:
+        console.print("[green]✓[/green] .compost.yml committed")
+    else:
+        console.print(f"[yellow]⚠ Could not commit .compost.yml: {commit.stderr.strip()}[/yellow]")
+
+    console.print("\n[bold]doctor:[/bold]")
+    _render_checks(_run_doctor_checks(repo))
+
+
+# ── helpers ───────────────────────────────────────────────────────────────────
+
+
+def _load_gitea_client(repo: Path):
+    """Build GiteaClient from .compost.yml gitea config + GITEA_TOKEN env var."""
+    from compost.gitea.client import GiteaClient
+    config = load_repo_config(repo)
+    gitea_cfg = config.get("gitea")
+    if not gitea_cfg:
+        console.print("[red].compost.yml missing 'gitea:' config. Run: compost gitea setup[/red]")
+        sys.exit(1)
+    token = os.environ.get("GITEA_TOKEN", "")
+    if not token:
+        console.print("[red]GITEA_TOKEN env var is not set.[/red]")
+        sys.exit(1)
+    return GiteaClient(
+        url=gitea_cfg["url"],
+        owner=gitea_cfg["owner"],
+        repo=gitea_cfg["repo"],
+        token=token,
+    )
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -240,11 +376,41 @@ def _run_doctor_checks(repo: Path) -> list[tuple[str, bool, str]]:
     for md in wiki_dir.rglob("*.md"):
         if md.name in ("glossary.md", "index.md", "log.md"):
             continue
-        fm, body = parse_frontmatter(md)
+        fm, _ = parse_frontmatter(md)
         errs = validate_frontmatter(fm, md.relative_to(repo))
         errors.extend(errs)
     checks.append(("wiki frontmatter", not errors,
                    "; ".join(errors[:3]) + ("..." if len(errors) > 3 else "")))
+
+    # ── Gitea checks ──
+    gitea_cfg = config.get("gitea", {})
+    gitea_ok = all(k in gitea_cfg for k in ("url", "owner", "repo"))
+    checks.append(("gitea config", gitea_ok,
+                   "missing gitea.url/owner/repo in .compost.yml" if not gitea_ok else ""))
+
+    if gitea_ok:
+        token = os.environ.get("GITEA_TOKEN", "")
+        if not token:
+            checks.append(("gitea connectivity", False, "GITEA_TOKEN not set"))
+        else:
+            from compost.gitea.client import GiteaClient, GiteaError
+            try:
+                client = GiteaClient(
+                    url=gitea_cfg["url"], owner=gitea_cfg["owner"],
+                    repo=gitea_cfg["repo"], token=token,
+                )
+                user = client.get_authenticated_user()
+                checks.append(("gitea connectivity", True, f"authenticated as {user}"))
+            except GiteaError as e:
+                checks.append(("gitea connectivity", False, str(e)))
+
+        from compost.ingest.git import get_remote_url
+        remote_url = get_remote_url(repo, "origin")
+        expected_url_prefix = gitea_cfg["url"].rstrip("/")
+        remote_ok = remote_url is not None and expected_url_prefix in remote_url
+        checks.append(("gitea remote", remote_ok,
+                       f"origin URL '{remote_url}' doesn't match {expected_url_prefix}"
+                       if not remote_ok else ""))
 
     return checks
 
@@ -256,7 +422,6 @@ def _qmd_collections(index_name: str) -> set[str]:
     )
     if result.returncode != 0:
         return set()
-    # Parse text output: collection name appears on lines like "name (qmd://name/)"
     names: set[str] = set()
     for line in result.stdout.splitlines():
         line = line.strip()

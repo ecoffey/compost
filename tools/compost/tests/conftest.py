@@ -100,3 +100,28 @@ def compost_git_repo(git_repo: Path) -> Path:
     subprocess.run(["git", "commit", "-m", "add compost config"],
                    cwd=git_repo, check=True, capture_output=True)
     return git_repo
+
+
+@pytest.fixture
+def bare_repo(tmp_path: Path) -> Path:
+    """A bare git repo, usable as a local 'origin' remote. Leaves no HEAD."""
+    bare = tmp_path / "remote.git"
+    subprocess.run(
+        ["git", "init", "--bare", str(bare)],
+        check=True, capture_output=True,
+    )
+    return bare
+
+
+@pytest.fixture
+def compost_git_repo_with_remote(compost_git_repo: Path, bare_repo: Path) -> Path:
+    """compost_git_repo with a bare local repo set as 'origin'. HEAD on main."""
+    subprocess.run(
+        ["git", "remote", "add", "origin", f"file://{bare_repo}"],
+        cwd=compost_git_repo, check=True, capture_output=True,
+    )
+    subprocess.run(
+        ["git", "push", "--set-upstream", "origin", "main"],
+        cwd=compost_git_repo, check=True, capture_output=True,
+    )
+    return compost_git_repo

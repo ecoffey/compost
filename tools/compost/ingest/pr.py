@@ -1,52 +1,33 @@
 from __future__ import annotations
 
-import subprocess
-from dataclasses import dataclass
-from datetime import date
 from pathlib import Path
 
 import click
 
+from compost.gitea.client import GiteaClient, GiteaPR
 from compost.ingest.git import (
     changed_files,
     current_branch,
     default_branch,
-    fast_forward_merge,
+    fetch_and_ff,
 )
 
 
-@dataclass(frozen=True)
-class PRLog:
-    path: Path   # absolute path of the written log file
-
-
-def open_pr(repo: Path, branch: str) -> PRLog:
-    """Write PR log to _plans/pr-log/{branch-slug}.md and return path."""
+def create_pr(repo: Path, branch: str, client: GiteaClient) -> GiteaPR:
+    """Build PR body from changed files and open a Gitea PR. Returns the new PR."""
     base = default_branch(repo)
     files = changed_files(repo, branch, base)
-
-    branch_slug = branch.replace("/", "-")
-    log_dir = repo / "_pr-log"
-    log_dir.mkdir(parents=True, exist_ok=True)
-    log_path = log_dir / f"{branch_slug}.md"
-
-    today = date.today().isoformat()
     files_list = "\n".join(f"- {f}" for f in files) if files else "_(none)_"
-
-    content = (
-        f"# PR: {branch}\n\n"
-        f"**Branch:** {branch}\n"
-        f"**Date:** {today}\n"
+    body = (
         f"**Files changed:**\n{files_list}\n\n"
         f"---\n"
-        f"*Review complete? Merge with `compost pr merge`.*\n"
+        f"*Review and merge with `compost pr merge`.*"
     )
-    log_path.write_text(content)
-    return PRLog(path=log_path)
+    return client.open_pr(branch, base, f"raw: {branch}", body)
 
 
-def merge_pr(repo: Path) -> None:
-    """Gate: assert raw/* branch, no wiki/ edits, then fast-forward merge."""
+def merge_pr(repo: Path, client: GiteaClient) -> GiteaPR:
+    """Validate guards, merge via Gitea API, sync local repo. Returns merged PR."""
     branch = current_branch(repo)
     if not branch.startswith("raw/"):
         raise click.UsageError(
@@ -56,19 +37,21 @@ def merge_pr(repo: Path) -> None:
 
     base = default_branch(repo)
     files = changed_files(repo, branch, base)
-
     wiki_edits = [f for f in files if f.startswith("wiki/")]
     if wiki_edits:
         raise click.UsageError(
-            "Branch contains wiki/ edits which must not be auto-merged in Phase 2:\n"
+            "Branch contains wiki/ edits which must not be auto-merged:\n"
             + "\n".join(f"  {f}" for f in wiki_edits)
         )
 
-    result = subprocess.run(
-        ["git", "checkout", base],
-        cwd=repo, capture_output=True, text=True,
-    )
-    if result.returncode != 0:
-        raise click.UsageError(f"Cannot checkout '{base}': {result.stderr.strip()}")
+    pr = client.find_pr(branch)
+    if pr is None:
+        raise click.UsageError(
+            f"No open PR found for '{branch}'. "
+            "Was it already merged or not yet pushed?"
+        )
 
-    fast_forward_merge(repo, branch)
+    client.merge_pr(pr.number)
+    fetch_and_ff(repo, "origin", base)
+
+    return GiteaPR(number=pr.number, url=pr.url, state="merged")

@@ -12,6 +12,10 @@ from compost.ingest.git import (
     default_branch,
     fast_forward_merge,
     get_git_user_name,
+    get_remote_url,
+    push_branch,
+    fetch_and_ff,
+    set_remote_url,
 )
 
 
@@ -143,3 +147,91 @@ def test_fast_forward_merge(git_repo):
     fast_forward_merge(git_repo, "raw/2026-04-27-merge-test")
 
     assert new_file.exists()
+
+
+# ── push_branch ──────────────────────────────────────────────────────────────
+
+def test_push_branch(git_repo, bare_repo):
+    set_remote_url(git_repo, "origin", f"file://{bare_repo}")
+    subprocess.run(
+        ["git", "push", "--set-upstream", "origin", "main"],
+        cwd=git_repo, check=True, capture_output=True,
+    )
+
+    new_file = git_repo / "raw" / "notes" / "push-test.md"
+    new_file.parent.mkdir(parents=True, exist_ok=True)
+    new_file.write_text("hello")
+    subprocess.run(
+        ["git", "checkout", "-b", "raw/2026-04-28-push"],
+        cwd=git_repo, check=True, capture_output=True,
+    )
+    subprocess.run(["git", "add", str(new_file)], cwd=git_repo, check=True)
+    subprocess.run(
+        ["git", "commit", "-m", "add push-test"],
+        cwd=git_repo, check=True, capture_output=True,
+    )
+
+    push_branch(git_repo, "origin", "raw/2026-04-28-push")
+
+    result = subprocess.run(
+        ["git", "ls-remote", "--heads", f"file://{bare_repo}", "raw/2026-04-28-push"],
+        capture_output=True, text=True,
+    )
+    assert "raw/2026-04-28-push" in result.stdout
+
+    subprocess.run(["git", "checkout", "main"], cwd=git_repo, check=True, capture_output=True)
+
+
+def test_push_branch_fails_on_missing_remote(git_repo):
+    with pytest.raises(click.UsageError, match="Push failed"):
+        push_branch(git_repo, "no-such-remote", "main")
+
+
+# ── fetch_and_ff ─────────────────────────────────────────────────────────────
+
+def test_fetch_and_ff(git_repo, bare_repo):
+    set_remote_url(git_repo, "origin", f"file://{bare_repo}")
+    subprocess.run(
+        ["git", "push", "--set-upstream", "origin", "main"],
+        cwd=git_repo, check=True, capture_output=True,
+    )
+    # Already in sync — fetch_and_ff should succeed (no-op)
+    fetch_and_ff(git_repo, "origin", "main")
+    result = subprocess.run(
+        ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+        cwd=git_repo, capture_output=True, text=True,
+    )
+    assert result.stdout.strip() == "main"
+
+
+# ── set_remote_url ────────────────────────────────────────────────────────────
+
+def test_set_remote_url_adds_new_remote(git_repo, bare_repo):
+    set_remote_url(git_repo, "origin", f"file://{bare_repo}")
+    result = subprocess.run(
+        ["git", "remote", "get-url", "origin"],
+        cwd=git_repo, capture_output=True, text=True,
+    )
+    assert str(bare_repo) in result.stdout
+
+
+def test_set_remote_url_updates_existing(git_repo, bare_repo):
+    set_remote_url(git_repo, "origin", "http://old.example.com/repo.git")
+    set_remote_url(git_repo, "origin", f"file://{bare_repo}")
+    result = subprocess.run(
+        ["git", "remote", "get-url", "origin"],
+        cwd=git_repo, capture_output=True, text=True,
+    )
+    assert str(bare_repo) in result.stdout
+
+
+# ── get_remote_url ────────────────────────────────────────────────────────────
+
+def test_get_remote_url_returns_url(git_repo, bare_repo):
+    set_remote_url(git_repo, "origin", f"file://{bare_repo}")
+    url = get_remote_url(git_repo, "origin")
+    assert str(bare_repo) in url
+
+
+def test_get_remote_url_returns_none_when_missing(git_repo):
+    assert get_remote_url(git_repo, "origin") is None

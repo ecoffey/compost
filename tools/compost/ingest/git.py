@@ -90,3 +90,66 @@ def fast_forward_merge(repo: Path, branch: str) -> None:
         raise click.UsageError(
             f"Cannot fast-forward merge '{branch}': {result.stderr.strip()}"
         )
+
+
+def push_branch(repo: Path, remote: str, branch: str) -> None:
+    """Push branch to remote, setting tracking. Raises click.UsageError on failure."""
+    result = subprocess.run(
+        ["git", "push", "--set-upstream", remote, branch],
+        cwd=repo, capture_output=True, text=True,
+    )
+    if result.returncode != 0:
+        raise click.UsageError(
+            f"Push failed: {result.stderr.strip()}\n"
+            f"Retry manually: git push {remote} {branch}"
+        )
+
+
+def fetch_and_ff(repo: Path, remote: str, branch: str) -> None:
+    """Fetch from remote, checkout branch, fast-forward to remote tracking ref."""
+    subprocess.run(["git", "fetch", remote], cwd=repo, check=True, capture_output=True)
+
+    result = subprocess.run(
+        ["git", "checkout", branch],
+        cwd=repo, capture_output=True, text=True,
+    )
+    if result.returncode != 0:
+        raise click.UsageError(f"Cannot checkout '{branch}': {result.stderr.strip()}")
+
+    result = subprocess.run(
+        ["git", "merge", "--ff-only", f"{remote}/{branch}"],
+        cwd=repo, capture_output=True, text=True,
+    )
+    if result.returncode != 0:
+        raise click.UsageError(
+            f"Cannot fast-forward '{branch}' to '{remote}/{branch}': {result.stderr.strip()}"
+        )
+
+
+def set_remote_url(repo: Path, remote: str, url: str) -> None:
+    """Add remote if missing, or update its URL if it already exists."""
+    result = subprocess.run(
+        ["git", "remote", "get-url", remote],
+        cwd=repo, capture_output=True,
+    )
+    if result.returncode == 0:
+        subprocess.run(
+            ["git", "remote", "set-url", remote, url],
+            cwd=repo, check=True, capture_output=True,
+        )
+    else:
+        subprocess.run(
+            ["git", "remote", "add", remote, url],
+            cwd=repo, check=True, capture_output=True,
+        )
+
+
+def get_remote_url(repo: Path, remote: str) -> str | None:
+    """Return the URL for a remote, or None if the remote doesn't exist."""
+    result = subprocess.run(
+        ["git", "remote", "get-url", remote],
+        cwd=repo, capture_output=True, text=True,
+    )
+    if result.returncode != 0:
+        return None
+    return result.stdout.strip()

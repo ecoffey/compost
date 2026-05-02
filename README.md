@@ -49,17 +49,35 @@ Register this in your Claude Code MCP config to give agents access to the wiki:
 }
 ```
 
+## Gitea setup (one-time)
+
+Gitea must be running before using `compost raw add`. Configure the integration from your wiki repo:
+
+```bash
+export GITEA_TOKEN=your-token-here
+cd ~/my-team-wiki
+compost gitea setup --owner myuser
+# creates Gitea repo, sets origin remote, pushes main, writes gitea: to .compost.yml
+```
+
 ## Ingestion commands
 
 ### `compost raw add`
 
-Capture a raw source file from stdin and commit it on a new `raw/*` branch.
+Capture a raw source file from stdin, commit it on a new `raw/*` branch, push to Gitea, and open a PR.
 
 ```bash
 echo "Discussed retry ownership. Alice owns it." | \
   COMPOST_REPO=. compost raw add \
     --source note \
     --title "retry ownership discussion"
+```
+
+Output:
+```
+✓ raw/notes/2026-04-28-retry-ownership-discussion.md
+branch: raw/2026-04-28-retry-ownership-discussion
+PR #3: http://localhost:3000/myuser/my-team-wiki/pulls/3
 ```
 
 Options:
@@ -76,36 +94,38 @@ Body is read from stdin.
 
 ### `compost pr open`
 
-Write a local PR log for the current `raw/*` branch.
+Print the Gitea PR URL for the current `raw/*` branch.
 
 ```bash
 COMPOST_REPO=. compost pr open
-# → writes _pr-log/raw-YYYY-MM-DD-slug.md
+# PR #3: http://localhost:3000/myuser/my-team-wiki/pulls/3  (open)
 ```
 
 ### `compost pr merge`
 
-Fast-forward merge the current `raw/*` branch into the default branch. Blocked if any `wiki/` files were modified on the branch.
+Merge the current `raw/*` branch via Gitea PR, then sync the local repo. Blocked if any `wiki/` files were modified on the branch.
 
 ```bash
 COMPOST_REPO=. compost pr merge
+# merged (PR #3)
 ```
 
 ### Steel thread
 
 ```bash
+# One-time: start Gitea, create a token, then:
+export GITEA_TOKEN=your-token
 cd ~/local-test/my-wiki
-git init && git add -A && git commit -m "initial wiki content"
+compost gitea setup --owner myuser
 
+# Ingest a raw file:
 echo "Discussed retry ownership. Alice owns it." | \
   COMPOST_REPO=. compost raw add --source note --title "retry ownership discussion"
+# PR opened at http://localhost:3000/myuser/my-wiki/pulls/1
 
-COMPOST_REPO=. compost pr open
-# → writes _pr-log/raw-YYYY-MM-DD-retry-ownership-discussion.md
-# review the file, then:
-
+# Review the PR in browser, then merge:
 COMPOST_REPO=. compost pr merge
-# → fast-forward merges into main
+# merged (PR #1)
 ```
 
 ## Running tests
