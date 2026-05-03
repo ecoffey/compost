@@ -140,3 +140,67 @@ def test_merge_pr_raises_when_no_open_pr(compost_git_repo_with_remote):
     with pytest.raises(click.UsageError, match="No open PR"):
         merge_pr(repo, NoPRClient())
     subprocess.run(["git", "checkout", "main"], cwd=repo, check=True, capture_output=True)
+
+
+# ── create_pr: Tier 1 integration ────────────────────────────────────────────
+
+
+def test_create_pr_body_includes_tier1_on_fire(compost_git_repo):
+    from compost.ingest.classifier import ClassifyDecision, Trigger
+
+    repo = compost_git_repo
+    branch = "raw/2026-04-28-tier1-fire"
+    _add_file_on_branch(repo, "raw/decisions/2026-04-28-tier1-fire.md", branch)
+
+    decision = ClassifyDecision(
+        fired=True,
+        triggers=[
+            Trigger(kind="source", pattern="decision"),
+            Trigger(kind="semantic", pattern="decision"),
+        ],
+        rationale="2 matched triggers: source:decision, semantic:decision",
+    )
+
+    received_bodies = []
+
+    @dataclass
+    class CapturingClient:
+        pr: GiteaPR = GiteaPR(1, "http://gitea/pulls/1", "open")
+        def open_pr(self, branch, base, title, body):
+            received_bodies.append(body)
+            return self.pr
+        def find_pr(self, branch): return self.pr
+        def merge_pr(self, n): pass
+
+    create_pr(repo, branch, CapturingClient(), decision=decision)
+    assert len(received_bodies) == 1
+    body = received_bodies[0]
+    assert "**Tier 1:** FIRE" in body
+    assert "source:decision" in body
+    assert "semantic:decision" in body
+
+    subprocess.run(["git", "checkout", "main"], cwd=repo, check=True, capture_output=True)
+
+
+def test_create_pr_body_omits_tier1_when_no_decision(compost_git_repo):
+    repo = compost_git_repo
+    branch = "raw/2026-04-28-no-decision"
+    _add_file_on_branch(repo, "raw/notes/2026-04-28-no-decision.md", branch)
+
+    received_bodies = []
+
+    @dataclass
+    class CapturingClient:
+        pr: GiteaPR = GiteaPR(1, "http://gitea/pulls/1", "open")
+        def open_pr(self, branch, base, title, body):
+            received_bodies.append(body)
+            return self.pr
+        def find_pr(self, branch): return self.pr
+        def merge_pr(self, n): pass
+
+    create_pr(repo, branch, CapturingClient(), decision=None)
+    body = received_bodies[0]
+    assert "Tier 1" not in body
+    assert "**Files changed:**" in body
+
+    subprocess.run(["git", "checkout", "main"], cwd=repo, check=True, capture_output=True)

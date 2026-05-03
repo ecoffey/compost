@@ -31,5 +31,8 @@ packages = [
     "compost.ingest",
 ]
 
+[tool.setuptools.package-data]
+"compost.ingest" = ["classifier_rules.yaml"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]

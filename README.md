@@ -60,6 +60,10 @@ compost gitea setup --owner myuser
 # creates Gitea repo, sets origin remote, pushes main, writes gitea: to .compost.yml
 ```
 
+The token requires three scopes: **`read:user`**, **`write:issue`**, **`write:repository`**.
+
+If Gitea's fine-grained tokens can't auto-create the repo (some versions require broader permissions for `POST /user/repos`), create the repo manually in the Gitea UI first and then re-run `gitea setup` — it will detect the existing repo and skip creation.
+
 ## Ingestion commands
 
 ### `compost raw add`
@@ -110,6 +114,58 @@ COMPOST_REPO=. compost pr merge
 # merged (PR #3)
 ```
 
+## Tier 1 Classifier
+
+`compost raw add` automatically classifies new raw files using rule-based triggers. FIRE means the file is likely worth synthesizing into the wiki.
+
+```
+✓ raw/decisions/2026-04-27-use-stripe.md
+branch: raw/2026-04-27-use-stripe
+[Tier 1] FIRE — source:decision, semantic:decision
+PR #3: http://localhost:3000/myteam/my-team-wiki/pulls/3
+```
+
+The classification result is also included in the Gitea PR description.
+
+### `compost classify run`
+
+Classify a single file. Use `--dry-run` to skip logging.
+
+```bash
+COMPOST_REPO=. compost classify run raw/decisions/2026-04-27-use-stripe.md
+# ✓ FIRE   raw/decisions/2026-04-27-use-stripe.md
+#   source:decision · semantic:decision
+#   "2 matched triggers: source:decision, semantic:decision"
+
+COMPOST_REPO=. compost classify run --dry-run raw/notes/standup.md
+#   no-fire   raw/notes/standup.md
+#   (no triggers matched)
+```
+
+### `compost classify replay`
+
+Re-classify all raw files modified within a rolling window (dry-run; no logging).
+
+```bash
+COMPOST_REPO=. compost classify replay --since 7d
+```
+
+### Rules override
+
+Create `.compost/classifier_rules.yaml` in your wiki repo to override the defaults:
+
+```yaml
+source_triggers:
+  - incident
+  - decision
+  - support      # add support tickets
+
+semantic_keywords:
+  - "decision"
+  - "breaking"
+  # ... any additional keywords
+```
+
 ### Steel thread
 
 ```bash
@@ -121,7 +177,10 @@ compost gitea setup --owner myuser
 # Ingest a raw file:
 echo "Discussed retry ownership. Alice owns it." | \
   COMPOST_REPO=. compost raw add --source note --title "retry ownership discussion"
-# PR opened at http://localhost:3000/myuser/my-wiki/pulls/1
+# ✓ raw/notes/2026-04-28-retry-ownership-discussion.md
+# branch: raw/2026-04-28-retry-ownership-discussion
+# [Tier 1] no-fire
+# PR #1: http://localhost:3000/myuser/my-wiki/pulls/1
 
 # Review the PR in browser, then merge:
 COMPOST_REPO=. compost pr merge

@@ -72,6 +72,11 @@ class GiteaClient:
                 raise
         self._request("POST", "/user/repos", {"name": name, "private": private})
 
+    def get_clone_url(self, name: str, ssh: bool = False) -> str:
+        """Return the clone URL for the repo as reported by Gitea (HTTP or SSH)."""
+        data = self._request("GET", f"/repos/{self._owner}/{name}")
+        return data["ssh_url"] if ssh else data["clone_url"]
+
     def open_pr(self, branch: str, base: str, title: str, body: str) -> GiteaPR:
         data = self._request(
             "POST",

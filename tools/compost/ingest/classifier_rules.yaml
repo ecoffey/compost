@@ -1,0 +1,28 @@
+# Source types that always fire Tier 1.
+source_triggers:
+  - incident
+  - decision
+
+# Keywords matched case-insensitively against raw body and the optional
+# `intent` frontmatter field.
+semantic_keywords:
+  - "decision"
+  - "deprecate"
+  - "breaking"
+  - "incident"
+  - "migration"
+  - "postmortem"
+  - "ownership"
+  - "architecture"
+
+# Path prefix patterns (fnmatch-style, relative to repo root).
+path_patterns:
+  - "raw/incidents/*"
+  - "raw/decisions/*"
+
+# Volume trigger: fire if N+ raw files from the same source type were
+# added within the rolling window. Uses git log (--diff-filter=A) when
+# the repo has git; falls back to mtime when git is unavailable.
+volume:
+  threshold: 5
+  window_days: 7

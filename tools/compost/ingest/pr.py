@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import click
 
@@ -12,13 +13,28 @@ from compost.ingest.git import (
     fetch_and_ff,
 )
 
+if TYPE_CHECKING:
+    from compost.ingest.classifier import ClassifyDecision
 
-def create_pr(repo: Path, branch: str, client: GiteaClient) -> GiteaPR:
-    """Build PR body from changed files and open a Gitea PR. Returns the new PR."""
+
+def create_pr(
+    repo: Path,
+    branch: str,
+    client: GiteaClient,
+    decision: "ClassifyDecision | None" = None,
+) -> GiteaPR:
+    """Build PR body from changed files (and optional Tier 1 result) and open a Gitea PR."""
     base = default_branch(repo)
     files = changed_files(repo, branch, base)
     files_list = "\n".join(f"- {f}" for f in files) if files else "_(none)_"
+
+    tier1 = ""
+    if decision is not None and decision.fired:
+        trigger_str = ", ".join(f"{t.kind}:{t.pattern}" for t in decision.triggers)
+        tier1 = f"**Tier 1:** FIRE — {trigger_str}\n\n"
+
     body = (
+        f"{tier1}"
         f"**Files changed:**\n{files_list}\n\n"
         f"---\n"
         f"*Review and merge with `compost pr merge`.*"
