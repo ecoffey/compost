@@ -133,9 +133,11 @@ def raw_group() -> None:
               help="Source reference (e.g. PagerDuty ID, Slack URL).")
 @click.option("--channel", default="",
               help="Slack channel name. Required when --source=slack.")
+@click.option("--no-synth", is_flag=True, default=False,
+              help="Skip Tier 2 synthesis even if Tier 1 fires.")
 @click.pass_context
 def raw_add(ctx: click.Context, source: str, title: str, captured_by: str | None,
-            origin: str, channel: str) -> None:
+            origin: str, channel: str, no_synth: bool) -> None:
     """Add a raw source file from stdin, commit on a new branch, and open a Gitea PR."""
     from datetime import datetime, timezone
 
@@ -192,10 +194,29 @@ def raw_add(ctx: click.Context, source: str, title: str, captured_by: str | None
     except Exception as exc:
         console.print(f"[dim]⚠ classify failed: {exc}[/dim]")
 
+    # Tier 2 synthesis (runs before push so both commits land in one push)
+    synth_result = None
+    if decision and decision.fired and not no_synth:
+        console.print("[dim][Tier 2] synthesizing...[/dim]")
+        try:
+            from compost.synth.agent import synthesize
+            from compost.synth.diff_writer import apply_diffs, commit_diffs
+            synth_result = synthesize(raw_file.path, repo)
+            if synth_result.wiki_diffs:
+                written = apply_diffs(repo, synth_result)
+                commit_diffs(repo, written, synth_result.run_id)
+                names = ", ".join(str(d.rel_path) for d in synth_result.wiki_diffs)
+                console.print(f"[green][Tier 2][/green] {len(synth_result.wiki_diffs)} wiki page(s) updated: {names}")
+            else:
+                console.print("[dim][Tier 2] no wiki edits proposed[/dim]")
+        except Exception as exc:
+            console.print(f"[dim]⚠ synthesis failed: {exc}[/dim]")
+            synth_result = None
+
     try:
         push_branch(repo, "origin", branch)
         client = _load_gitea_client(repo)
-        pr = create_pr(repo, branch, client, decision)
+        pr = create_pr(repo, branch, client, decision, synth_result)
         console.print(f"PR #{pr.number}: {pr.url}")
     except (click.UsageError, GiteaError) as e:
         console.print(f"[yellow]⚠ push/PR failed: {e}[/yellow]")
@@ -350,6 +371,109 @@ def classify_replay(ctx: click.Context, since: str) -> None:
             or "(none)"
         )
         table.add_row(str(rel), fired_str, triggers_str)
+
+    console.print(table)
+
+
+# ── synth commands ───────────────────────────────────────────────────────────
+
+
+@main.group("synth")
+def synth_group() -> None:
+    """Tier 2 synthesis: propose wiki edits from raw files."""
+
+
+@synth_group.command("run")
+@click.option("--raw", "raw_rel", required=True,
+              help="Raw file path relative to repo root.")
+@click.option("--provider", default=None,
+              help="Override .compost.yml synth.provider.")
+@click.option("--model", default=None,
+              help="Override .compost.yml synth.model.")
+@click.option("--dry-run", is_flag=True, default=False,
+              help="Propose edits but do not write to disk or git.")
+@click.pass_context
+def synth_run(ctx: click.Context, raw_rel: str, provider: str | None,
+              model: str | None, dry_run: bool) -> None:
+    """Run synthesis on a raw file and optionally commit wiki edits to the current branch."""
+    from dataclasses import replace
+    from compost.synth.agent import synthesize, load_synth_config
+    from compost.synth.diff_writer import apply_diffs, commit_diffs
+
+    repo = ctx.obj["repo"] or find_repo_root(Path.cwd())
+    if repo is None:
+        console.print("[red]No .compost.yml found.[/red]")
+        sys.exit(1)
+
+    raw_path = repo / raw_rel
+    if not raw_path.exists():
+        console.print(f"[red]Raw file not found: {raw_path}[/red]")
+        sys.exit(1)
+
+    cfg = load_synth_config(repo)
+    if provider:
+        cfg = replace(cfg, provider=provider)
+    if model:
+        cfg = replace(cfg, model=model)
+
+    result = synthesize(raw_path, repo, config=cfg, dry_run=dry_run)
+
+    if not result.wiki_diffs:
+        console.print("[dim][Tier 2] no wiki edits proposed[/dim]")
+        return
+
+    if dry_run:
+        console.print(f"[dim][Tier 2] dry-run: {len(result.wiki_diffs)} wiki page(s) would be updated[/dim]")
+        for d in result.wiki_diffs:
+            tag = "new" if d.is_new else "update"
+            console.print(f"  {d.rel_path} ({tag})")
+        return
+
+    written = apply_diffs(repo, result)
+    commit_diffs(repo, written, result.run_id)
+    console.print(f"[green][Tier 2][/green] {len(result.wiki_diffs)} wiki page(s) updated")
+    for d in result.wiki_diffs:
+        tag = "new" if d.is_new else "updated"
+        console.print(f"  {d.rel_path} ({tag})")
+
+
+@synth_group.command("log")
+@click.option("--last", default=10, show_default=True,
+              help="Number of recent runs to show.")
+@click.pass_context
+def synth_log(ctx: click.Context, last: int) -> None:
+    """Show recent synthesis run history."""
+    from compost.synth.log import read_runs
+
+    repo = ctx.obj["repo"] or find_repo_root(Path.cwd())
+    if repo is None:
+        console.print("[red]No .compost.yml found.[/red]")
+        sys.exit(1)
+
+    runs = read_runs(repo, last=last)
+    if not runs:
+        console.print("[dim]No synthesis runs found.[/dim]")
+        return
+
+    table = Table(show_header=True, box=None, padding=(0, 2))
+    table.add_column("Run ID", style="cyan")
+    table.add_column("Timestamp")
+    table.add_column("Raw file")
+    table.add_column("Edits", justify="right")
+    table.add_column("Contradictions", justify="right")
+    table.add_column("Cost (USD)", justify="right")
+    table.add_column("Duration (s)", justify="right")
+
+    for r in runs:
+        table.add_row(
+            (r.get("run_id") or "?")[:8],
+            (r.get("ts") or "")[:19].replace("T", " "),
+            r.get("raw", "?"),
+            str(r.get("wiki_edits", 0)),
+            str(r.get("contradictions", 0)),
+            f"{r.get('total_cost_usd', 0):.4f}",
+            f"{r.get('duration_s', 0):.1f}",
+        )
 
     console.print(table)
 

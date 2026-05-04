@@ -1,38 +1,8 @@
 from __future__ import annotations
 
-import json
-import subprocess
 from pathlib import Path
 
-
-def _qmd_query(query: str, index: str, collection: str, limit: int = 5) -> list[dict]:
-    """Return hit dicts with keys: file, snippet, score, title."""
-    result = subprocess.run(
-        [
-            "qmd", "--index", index,
-            "query", query,
-            "--collection", collection,
-            "-n", str(limit),
-            "--json",
-            "--no-rerank",
-        ],
-        capture_output=True, text=True,
-    )
-    if result.returncode != 0:
-        return []
-    try:
-        return json.loads(result.stdout)
-    except json.JSONDecodeError:
-        return []
-
-
-def _qmd_get(file_uri: str, index: str) -> str:
-    """Return full document text for the given qmd:// URI."""
-    result = subprocess.run(
-        ["qmd", "--index", index, "get", file_uri, "--full"],
-        capture_output=True, text=True,
-    )
-    return result.stdout if result.returncode == 0 else ""
+from compost.qmd import qmd_get as _qmd_get, qmd_query as _qmd_query
 
 
 _SCOPE_TO_COLLECTION = {

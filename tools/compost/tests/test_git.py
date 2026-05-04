@@ -16,6 +16,7 @@ from compost.ingest.git import (
     push_branch,
     fetch_and_ff,
     set_remote_url,
+    stage_and_commit,
 )
 
 
@@ -235,3 +236,29 @@ def test_get_remote_url_returns_url(git_repo, bare_repo):
 
 def test_get_remote_url_returns_none_when_missing(git_repo):
     assert get_remote_url(git_repo, "origin") is None
+
+
+# ── stage_and_commit ──────────────────────────────────────────────────────────
+
+def test_stage_and_commit_commits_on_current_branch(compost_git_repo):
+    f1 = compost_git_repo / "raw" / "notes" / "first.md"
+    f1.parent.mkdir(parents=True, exist_ok=True)
+    f1.write_text("first")
+    create_branch_and_commit(compost_git_repo, "raw/2026-05-03-test", [f1], "raw: first")
+    branch_before = current_branch(compost_git_repo)
+
+    f2 = compost_git_repo / "wiki" / "services" / "payments.md"
+    f2.parent.mkdir(parents=True, exist_ok=True)
+    f2.write_text("wiki content")
+    stage_and_commit(compost_git_repo, [f2], "synth: wiki edits (abc123)")
+
+    assert current_branch(compost_git_repo) == branch_before
+
+    log = subprocess.run(
+        ["git", "log", "--oneline", "-2"],
+        cwd=compost_git_repo, capture_output=True, text=True,
+    ).stdout
+    assert "synth: wiki edits" in log
+    assert "raw: first" in log
+
+    subprocess.run(["git", "checkout", "main"], cwd=compost_git_repo, check=True, capture_output=True)

@@ -108,23 +108,6 @@ def test_merge_pr_blocked_on_non_raw_branch(compost_git_repo_with_remote):
     subprocess.run(["git", "checkout", "main"], cwd=repo, check=True, capture_output=True)
 
 
-def test_merge_pr_blocked_on_wiki_edit(compost_git_repo_with_remote):
-    repo = compost_git_repo_with_remote
-    branch = "raw/2026-04-28-has-wiki-edit"
-    raw_f = repo / "raw" / "notes" / "2026-04-28-has-wiki-edit.md"
-    raw_f.parent.mkdir(parents=True, exist_ok=True)
-    raw_f.write_text("raw content")
-    wiki_f = repo / "wiki" / "services" / "payments.md"
-    wiki_f.parent.mkdir(parents=True, exist_ok=True)
-    wiki_f.write_text("wiki content")
-    subprocess.run(["git", "checkout", "-b", branch], cwd=repo, check=True, capture_output=True)
-    subprocess.run(["git", "add", str(raw_f), str(wiki_f)], cwd=repo, check=True)
-    subprocess.run(["git", "commit", "-m", "raw + wiki edit"],
-                   cwd=repo, check=True, capture_output=True)
-    with pytest.raises(click.UsageError, match="wiki/"):
-        merge_pr(repo, FakeGiteaClient())
-    subprocess.run(["git", "checkout", "main"], cwd=repo, check=True, capture_output=True)
-
 
 def test_merge_pr_raises_when_no_open_pr(compost_git_repo_with_remote):
     repo = compost_git_repo_with_remote
@@ -142,7 +125,7 @@ def test_merge_pr_raises_when_no_open_pr(compost_git_repo_with_remote):
     subprocess.run(["git", "checkout", "main"], cwd=repo, check=True, capture_output=True)
 
 
-# ── create_pr: Tier 1 integration ────────────────────────────────────────────
+# ── create_pr: Tier 1 + Tier 2 integration ───────────────────────────────────
 
 
 def test_create_pr_body_includes_tier1_on_fire(compost_git_repo):
@@ -202,5 +185,69 @@ def test_create_pr_body_omits_tier1_when_no_decision(compost_git_repo):
     body = received_bodies[0]
     assert "Tier 1" not in body
     assert "**Files changed:**" in body
+
+    subprocess.run(["git", "checkout", "main"], cwd=repo, check=True, capture_output=True)
+
+
+def test_create_pr_body_includes_tier2_on_result(compost_git_repo):
+    from compost.synth.agent import SynthesisResult, FileDiff, ContradictionNote
+
+    repo = compost_git_repo
+    branch = "raw/2026-05-03-with-synth"
+    _add_file_on_branch(repo, "raw/decisions/2026-05-03-with-synth.md", branch)
+
+    result = SynthesisResult(
+        run_id="abc123",
+        wiki_diffs=[
+            FileDiff(rel_path=Path("wiki/services/payments.md"), content="...", is_new=False),
+        ],
+        pr_description=(
+            "**Tier 2 synthesis:**\n"
+            "- wiki/services/payments.md (updated)\n\n"
+            "**Contradictions declared:** none"
+        ),
+        cited_sources=["raw/decisions/2026-05-03-with-synth.md"],
+        declared_contradictions=[],
+    )
+
+    received_bodies = []
+
+    @dataclass
+    class CapturingClient:
+        pr: GiteaPR = GiteaPR(1, "http://gitea/pulls/1", "open")
+        def open_pr(self, branch, base, title, body):
+            received_bodies.append(body)
+            return self.pr
+        def find_pr(self, branch): return self.pr
+        def merge_pr(self, n): pass
+
+    create_pr(repo, branch, CapturingClient(), result=result)
+    body = received_bodies[0]
+    assert "Tier 2 synthesis" in body
+    assert "wiki/services/payments.md" in body
+    assert "Contradictions declared:** none" in body
+
+    subprocess.run(["git", "checkout", "main"], cwd=repo, check=True, capture_output=True)
+
+
+def test_create_pr_body_omits_tier2_when_no_result(compost_git_repo):
+    repo = compost_git_repo
+    branch = "raw/2026-05-03-no-result"
+    _add_file_on_branch(repo, "raw/notes/2026-05-03-no-result.md", branch)
+
+    received_bodies = []
+
+    @dataclass
+    class CapturingClient:
+        pr: GiteaPR = GiteaPR(1, "http://gitea/pulls/1", "open")
+        def open_pr(self, branch, base, title, body):
+            received_bodies.append(body)
+            return self.pr
+        def find_pr(self, branch): return self.pr
+        def merge_pr(self, n): pass
+
+    create_pr(repo, branch, CapturingClient(), result=None)
+    body = received_bodies[0]
+    assert "Tier 2" not in body
 
     subprocess.run(["git", "checkout", "main"], cwd=repo, check=True, capture_output=True)

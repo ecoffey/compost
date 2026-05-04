@@ -15,6 +15,7 @@ from compost.ingest.git import (
 
 if TYPE_CHECKING:
     from compost.ingest.classifier import ClassifyDecision
+    from compost.synth.agent import SynthesisResult
 
 
 def create_pr(
@@ -22,8 +23,9 @@ def create_pr(
     branch: str,
     client: GiteaClient,
     decision: "ClassifyDecision | None" = None,
+    result: "SynthesisResult | None" = None,
 ) -> GiteaPR:
-    """Build PR body from changed files (and optional Tier 1 result) and open a Gitea PR."""
+    """Build PR body from changed files, optional Tier 1 decision, and optional Tier 2 result."""
     base = default_branch(repo)
     files = changed_files(repo, branch, base)
     files_list = "\n".join(f"- {f}" for f in files) if files else "_(none)_"
@@ -33,8 +35,13 @@ def create_pr(
         trigger_str = ", ".join(f"{t.kind}:{t.pattern}" for t in decision.triggers)
         tier1 = f"**Tier 1:** FIRE — {trigger_str}\n\n"
 
+    tier2 = ""
+    if result is not None:
+        tier2 = result.pr_description + "\n\n"
+
     body = (
         f"{tier1}"
+        f"{tier2}"
         f"**Files changed:**\n{files_list}\n\n"
         f"---\n"
         f"*Review and merge with `compost pr merge`.*"
@@ -51,15 +58,6 @@ def merge_pr(repo: Path, client: GiteaClient) -> GiteaPR:
             "Checkout a raw/* branch before merging."
         )
 
-    base = default_branch(repo)
-    files = changed_files(repo, branch, base)
-    wiki_edits = [f for f in files if f.startswith("wiki/")]
-    if wiki_edits:
-        raise click.UsageError(
-            "Branch contains wiki/ edits which must not be auto-merged:\n"
-            + "\n".join(f"  {f}" for f in wiki_edits)
-        )
-
     pr = client.find_pr(branch)
     if pr is None:
         raise click.UsageError(
@@ -68,6 +66,7 @@ def merge_pr(repo: Path, client: GiteaClient) -> GiteaPR:
         )
 
     client.merge_pr(pr.number)
+    base = default_branch(repo)
     fetch_and_ff(repo, "origin", base)
 
     return GiteaPR(number=pr.number, url=pr.url, state="merged")

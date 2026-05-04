@@ -7,6 +7,7 @@ name = "compost"
 version = "0.1.0"
 requires-python = ">=3.11"
 dependencies = [
+    "anthropic>=0.40",
     "click>=8.1",
     "httpx>=0.27",
     "mcp>=1.9",
@@ -29,10 +30,12 @@ packages = [
     "compost.model",
     "compost.mcp",
     "compost.ingest",
+    "compost.synth",
 ]
 
 [tool.setuptools.package-data]
 "compost.ingest" = ["classifier_rules.yaml"]
+"compost.synth" = ["prompts/*.md"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

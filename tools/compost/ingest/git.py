@@ -71,6 +71,18 @@ def create_branch_and_commit(
         raise click.UsageError(f"Commit failed: {result.stderr.strip()}")
 
 
+def stage_and_commit(repo: Path, files: list[Path], message: str) -> None:
+    """Stage files and commit on the current branch. Does not create a new branch."""
+    for f in files:
+        subprocess.run(["git", "add", str(f)], cwd=repo, check=True)
+    result = subprocess.run(
+        ["git", "commit", "-m", message],
+        cwd=repo, capture_output=True, text=True,
+    )
+    if result.returncode != 0:
+        raise click.UsageError(f"Commit failed: {result.stderr.strip()}")
+
+
 def changed_files(repo: Path, branch: str, base: str) -> list[str]:
     """Return paths changed on branch relative to base (three-dot diff)."""
     result = subprocess.run(
