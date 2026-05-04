@@ -1,0 +1,66 @@
+<ide_selection>The user selected the lines 52 to 72 from /Users/eoin/workspace/compost/_plans/backlog.md:
+## Meta flow for improving Compost (and maybe even wikis?)
+
+https://github.com/justinstimatze/hybrid
+
+```A cycle, not a pipeline. Concretely: a tool that watches a recurring stream of soft input — agent traces, evaluator outputs, meeting transcripts, knowledge-base entries — labels each new item against a curated vocabulary, and flags when a pattern you said you'd address recurs. LLM extracts (lens) → typed records accumulate (substrate) → deterministic code filters and ranks (gate) → LLM reasons over the filtered slice (reasoner) → notification or action lands. Each new item becomes input for the next turn's lens.
+
+That's a hybrid loop. The design pattern places LLM judgment and deterministic code in alternating layers that mutually generate each other's working surface — not just constraining each other, but producing the very inputs the other half operates over. The LLM generates typed records (and often the schema, notation, or code those records live in). The deterministic layer takes those records and produces filtered, scored, ranked context that becomes the next LLM call's input. Each half makes the other possible.```
+
+---
+
+## Minze as another tool, or substrate
+
+https://github.com/justinstimatze/winze
+
+```A knowledge base that sleeps, dreams, and trips.
+
+The agent-memory systems we've surveyed — Hermes, Karpathy's LLM wiki, Monarch dismech, Open Ontologies, Lean Mathlib — all solve some form of retrieval: remembering what you said. None of them target knowing where you're probably wrong. Winze is a typed epistemic substrate where go build is the consistency checker, contested theories are first-class structure, and an automated metabolism loop evolves the KB while you're away — seeking disconfirming evidence, generating speculative connections, and auditing its own cognitive biases.
+
+Knowledge looks like code. Entities are typed constants, claims are variable declarations, predicates are generic types. Put the wrong entity type in a relationship slot and it doesn't compile. Standard tooling works unchanged: LSP, go/ast, CI, code review, git blame. Every improvement to Claude Code, OpenClaw, Cursor, or Devin directly benefits this knowledge base — no adapter required.
+
+```
+
+This may or may not be related to the current task.</ide_selection>
+I want you to research these two repos and tell what you think about them fitting into this project
+
+---
+
+just git clone them to ~/workspace
+
+---
+
+yes
+
+---
+
+ok, lets write this out to @_plans/backlog.md (you can replace the two sections I added for these tools)
+
+---
+
+<ide_selection>The user selected the lines 62 to 62 from /Users/eoin/workspace/compost/_plans/backlog.md:
+ln -s ~/workspace/hybrid/skills/hybrid-loops ~/.claude/skills/hybrid-loops
+
+This may or may not be related to the current task.</ide_selection>
+ok I've linked in the hybrid skills can you see them?
+
+---
+
+Cool; I want to explore winze more.I do like the ideas there of code being the "proof" of the logical chain. I could see that being really important as we move "up" the scope. Not sure I love Go for it, was thinking Kotlin or Java. If I said "yes we have to have code as the substrate" how would you incorporate it?
+
+---
+
+My thoughts on this if we go with Option B: markdown + frontmatter still the primary artifact. Derive kotlin from it, and the compile passing is the consistency signal. Could we also have the resulting binary reproduce the same markdown (or frontmatter, or structure, or something) file just from the kotlin definitions, and then do a "fuzzy" comparision to the primary markdown file? Essentially trying to "round trip" that that generated kotlin still accurately describes the input markdown? 2.) can we come up with "theme" appropriate names? Like `compost stir` for `dream` or something?
+
+---
+
+already lets use /plan to think carefully about this. please consult previous plans as well as @implementation-handoff.md @team-context-research-spec.md @team-context-spec.md
+
+---
+
+<ide_opened_file>The user opened the file /Users/eoin/workspace/compost/_plans/2026-05-04-0142-kotlin-consistency-layer-high-level.md in the IDE. This may or may not be related to the current task.</ide_opened_file>
+ok; i like kotlin. could we express the same type constraints in python? I don't think we could right?
+
+---
+
+Yeah lets stick with kotling and call out sdkman explicitly for the laptop steel thread scope
