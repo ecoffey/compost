@@ -1,0 +1,139 @@
+/implement @_plans/2026-05-04-0142-kotlin-consistency-layer-impl.md
+
+---
+
+cant you just use Read?
+
+---
+
+<ide_opened_file>The user opened the file /Users/eoin/workspace/compost/_plans/2026-05-04-0142-kotlin-consistency-layer-impl.md in the IDE. This may or may not be related to the current task.</ide_opened_file>
+sure that sounds good; and then help me understand why `log` shows "?" for the "Raw file" column: ```eoin-mbp-3:team-context-test eoin$ compost synth run --raw raw/notes/2026-04-27-retry-ownership-discussion.md
+[Tier 2] no wiki edits proposed
+eoin-mbp-3:team-context-test eoin$ compost synth log
+  Run ID      Timestamp              Raw file    Edits    Contradictions    Cost (USD)    Duration (s)
+  62bc2b73    2026-05-04 15:45:01    ?               0                 0        0.0000             0.6
+eoin-mbp-3:team-context-test eoin$ compost synth run --raw raw/notes/2026-04-2
+2026-04-27-retry-ownership-discussion.md     2026-04-28-payments-service-rust-rewrite.md
+eoin-mbp-3:team-context-test eoin$ compost synth run --raw raw/notes/2026-04-28-payments-service-rust-rewrite.md
+[Tier 2] no wiki edits proposed
+eoin-mbp-3:team-context-test eoin$ compost synth log
+  Run ID      Timestamp              Raw file    Edits    Contradictions    Cost (USD)    Duration (s)
+  b5419fdf    2026-05-04 15:45:21    ?               0                 0        0.0000             0.3
+  62bc2b73    2026-05-04 15:45:01    ?               0                 0        0.0000             0.6
+eoin-mbp-3:team-context-test eoin$ compost synth run --raw raw/incidents/
+.gitkeep  2026/
+eoin-mbp-3:team-context-test eoin$ compost synth run --raw raw/incidents/2026/INC-0001-payment-timeout.md
+[Tier 2] no wiki edits proposed
+eoin-mbp-3:team-context-test eoin$ compost synth log
+  Run ID      Timestamp              Raw file    Edits    Contradictions    Cost (USD)    Duration (s)
+  c7ff1b7d    2026-05-04 15:48:42    ?               0                 0        0.0000             0.5
+  b5419fdf    2026-05-04 15:45:21    ?               0                 0        0.0000             0.3
+  62bc2b73    2026-05-04 15:45:01    ?               0                 0        0.0000             0.6```
+
+---
+
+yes
+
+---
+
+in `/Users/eoin/local-test/team-context-test` help me add a raw even that would trigger tier 2
+
+---
+
+no dice. Also shouldn't there be some value for Cost? could log also show raw token usage? ```eoin-mbp-3:team-context-test eoin$ cat <<'EOF' | COMPOST_REPO=/Users/eoin/local-test/team-context-test compost raw add \
+>   --source decision \
+>   --title "Switch payments service to async Stripe calls"
+> We've decided to move the payments service from synchronous Stripe SDK calls to an async queue-based approach. Instead of calling Stripe inline on each request, payment intents will be enqueued and processed by a background worker. This eliminates the connection pool exhaustion issue (INC-0001) and allows us to retry failed Stripe calls without blocking the caller. The worker will use exponential backoff with a max of 5 retries. The per-request timeout of 8s and the `max_network_retries=2` cap in the current architecture will be removed. Owner: alice. Effective immediately.
+> EOF
+✓ raw/decisions/2026-05-04-switch-payments-service-to-async-stripe-calls.md
+branch: raw/2026-05-04-switch-payments-service-to-async-stripe-calls
+[Tier 1] FIRE — source:decision, semantic:architecture, path:raw/decisions/*
+[Tier 2] synthesizing...
+[Tier 2] no wiki edits proposed
+PR #2: http://localhost:3000/ecoffey/team-context-test/pulls/2
+eoin-mbp-3:team-context-test eoin$ compost synth log
+  Run ID      Timestamp              Raw file                                                                     Edits    Contradictions    Cost (USD)    Duration (s)
+  b51b3c9b    2026-05-04 16:00:21    raw/decisions/2026-05-04-switch-payments-service-to-async-stripe-calls.md        0                 0        0.0000             0.4
+  5cc8e218    2026-05-04 15:53:31    raw/incidents/2026/INC-0001-payment-timeout.md                                   0                 0        0.0000             0.4```
+
+---
+
+two things:
+1.) lets add current utc timestamp to the branch names we generate so that we don't get name collisions.
+2.) I get this error: ```[Tier 2] synthesizing...
+⚠ synthesis failed: "Could not resolve authentication method. Expected either api_key or auth_token to be set. Or for one of the `X-Api-Key` or `Authorization` headers to be explicitly omitted"```. Do i need to set an env variable or something to hold the expected key or token?
+
+---
+
+hmm it created files in a `qmd:` directory? ```commit 94b5e5158f81039b63b6c417472e7af8b4bb8e7d (HEAD -> raw/2026-05-04T161353-switch-payments-service-to-async-stripe-calls, origin/raw/2026-05-04T161353-switch-payments-service-to-async-stripe-calls)
+Author: Eoin Coffey <eoin@test.com>
+Date:   Mon May 4 10:14:35 2026 -0600
+
+    synth: wiki edits (88d49f1f)
+
+ qmd:/wiki/decisions/0001-stripe-as-payment-processor.md | 70 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ qmd:/wiki/runbooks/payments-incident-response.md        | 79 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ qmd:/wiki/services/payments.md                          | 43 +++++++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 192 insertions(+)```
+
+---
+
+<ide_opened_file>The user opened the file /Users/eoin/workspace/compost/_plans/2026-05-04-0142-kotlin-consistency-layer-impl.md in the IDE. This may or may not be related to the current task.</ide_opened_file>
+ok, that is looking likes its all working. do you think we should be committing the generated kotlin files to source control?
+
+---
+
+yes
+
+---
+
+generate one for me for that repo
+
+---
+
+<ide_opened_file>The user opened the file /Users/eoin/workspace/compost/_plans/backlog.md in the IDE. This may or may not be related to the current task.</ide_opened_file>
+so in `http://localhost:3000/ecoffey/team-context-test/pulls/5` it says ```Contradictions declared:
+
+wiki/decisions/0001-stripe-as-payment-processor.md: The existing wiki states that Stripe SDK configuration must cap retries and set explicit timeouts (per INC-0001 learnings), but the new decision removes the 8s per-request timeout and the max_network_retries=2 cap in favour of an async queue-based worker with exponential backoff.
+wiki/services/payments.md: The existing wiki states Stripe SDK calls are synchronous with max_network_retries=2 and an 8s per-request timeout as required constraints, but the new decision removes these constraints entirely in favour of an async queue-based worker with exponential backoff and up to 5 retries.
+wiki/runbooks/payments-incident-response.md: Step 2 previously instructed responders to verify max_network_retries=2 and a per-request timeout of 8s as correct configuration, but the new async architecture removes both of these settings entirely.```.
+
+But nothing in the actual diff flags though. Those are all from the kotlin generation right?
+
+---
+
+ok cool; different question: should `.compost/classifications.jsonl` be checked into git or ignored?
+
+---
+
+ah ok; on the most recent raw/ branch it wasn't committed and part of the PR. should it have been?
+
+---
+
+hmm its still there? ```$ git st
+## raw/2026-05-04T161735-switch-payments-service-to-async-stripe-calls...origin/raw/2026-05-04T161735-switch-payments-service-to-async-stripe-calls
+ M .compost/classifications.jsonl```
+
+---
+
+why isn't that gitignore directive working? ```eoin:~/local-test/team-context-test (raw/2026-05-04T161735-switch-payments-service-to-async-stripe-calls *+=)
+$ cat .gitignore
+# compost generated artifacts — always re-derivable, never commit
+.compost/codify/
+.compost/synth-log/
+.compost/assay-report.md
+.claude/
+.entire/
+.obsidian/
+.obsidian/workspace.json
+
+eoin:~/local-test/team-context-test (raw/2026-05-04T161735-switch-payments-service-to-async-stripe-calls *+=)
+$ git st
+## raw/2026-05-04T161735-switch-payments-service-to-async-stripe-calls...origin/raw/2026-05-04T161735-switch-payments-service-to-async-stripe-calls
+M  .compost/classifications.jsonl
+AM .gitignore
+ M .obsidian/workspace.json```
+
+---
+
+yeah i'm talking about obsidian in that

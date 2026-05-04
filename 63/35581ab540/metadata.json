@@ -3,11 +3,26 @@
   "checkpoint_id": "6335581ab540",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 13,
+  "checkpoints_count": 29,
   "files_touched": [
+    "AGENTS.md",
     "_plans/2026-05-04-0142-kotlin-consistency-layer-high-level.md",
     "_plans/2026-05-04-0142-kotlin-consistency-layer-impl.md",
-    "_plans/backlog.md"
+    "_plans/backlog.md",
+    "tools/compost/README.md",
+    "tools/compost/bootstrap.py",
+    "tools/compost/cli.py",
+    "tools/compost/codify/__init__.py",
+    "tools/compost/codify/codegen.py",
+    "tools/compost/codify/compare.py",
+    "tools/compost/codify/compiler.py",
+    "tools/compost/codify/renderer.py",
+    "tools/compost/codify/schema/CompostSchema.kt",
+    "tools/compost/codify/schema/render_main.kt",
+    "tools/compost/pyproject.toml",
+    "tools/compost/synth/agent.py",
+    "tools/compost/tests/conftest.py",
+    "tools/compost/tests/test_codify.py"
   ],
   "sessions": [
     {
@@ -15,13 +30,19 @@
       "transcript": "/63/35581ab540/0/full.jsonl",
       "content_hash": "/63/35581ab540/0/content_hash.txt",
       "prompt": "/63/35581ab540/0/prompt.txt"
+    },
+    {
+      "metadata": "/63/35581ab540/1/metadata.json",
+      "transcript": "/63/35581ab540/1/full.jsonl",
+      "content_hash": "/63/35581ab540/1/content_hash.txt",
+      "prompt": "/63/35581ab540/1/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 2091,
-    "cache_creation_tokens": 627830,
-    "cache_read_tokens": 13093938,
-    "output_tokens": 122038,
-    "api_call_count": 141
+    "input_tokens": 2359,
+    "cache_creation_tokens": 1313741,
+    "cache_read_tokens": 31868099,
+    "output_tokens": 249124,
+    "api_call_count": 339
   }
 }
