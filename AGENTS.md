@@ -50,3 +50,30 @@ _PRICING: dict[str, tuple[float, float]] = {
 ## Raw file naming
 
 Use date-based filenames (`YYYY-MM-DD-{slug}`) rather than sequence numbers for raw source files. Sequence scanning is fragile and unnecessary — timestamps give ordering without coordination. The `INC-` prefix on incident files is kept for visual correlation with external incident systems, but carries no numeric sequence.
+
+---
+
+## Tooling: Kotlin Consistency Layer
+
+`compost codify --compile` and `compost assay` require `kotlinc` and `java` on PATH.
+
+Install via SDKMAN (manages JVM toolchains per-user without touching system Java):
+
+```bash
+curl -s "https://get.sdkman.io" | bash
+source "$HOME/.sdkman/bin/sdkman-init.sh"
+sdk install kotlin    # installs kotlinc + JVM
+kotlinc -version      # verify
+```
+
+**Schema file:** `tools/compost/codify/schema/CompostSchema.kt` is a versioned package resource.
+Do not edit it directly. Schema changes (adding a new wiki page type) require updating both
+`CompostSchema.kt` and `_TYPE_MAP` in `codegen.py` together.
+
+**CI promotion:** when moving to GitHub Actions (Phase 9), swap SDKMAN for:
+```yaml
+- uses: actions/setup-java@v4
+  with: { java-version: '21', distribution: 'temurin' }
+- uses: fwilhe2/setup-kotlin@v1
+```
+No Python or compost code changes required.

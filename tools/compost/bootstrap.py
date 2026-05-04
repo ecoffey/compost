@@ -45,6 +45,13 @@ def bootstrap_repo(path: Path, name: str) -> None:
     config = {"name": name, "qmd_index": name}
     (path / ".compost.yml").write_text(yaml.dump(config))
 
+    (path / ".gitignore").write_text(
+        "# compost generated artifacts — always re-derivable, never commit\n"
+        ".compost/codify/\n"
+        ".compost/synth-log/\n"
+        ".compost/assay-report.md\n"
+    )
+
     codeowners = (
         "# CODEOWNERS for wiki content.\n"
         "# Format: <path_pattern> <owner> [auto-merge: true|false]\n"

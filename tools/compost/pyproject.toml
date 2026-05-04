@@ -31,11 +31,13 @@ packages = [
     "compost.mcp",
     "compost.ingest",
     "compost.synth",
+    "compost.codify",
 ]
 
 [tool.setuptools.package-data]
 "compost.ingest" = ["classifier_rules.yaml"]
 "compost.synth" = ["prompts/*.md"]
+"compost.codify" = ["schema/*.kt"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

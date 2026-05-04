@@ -12,6 +12,7 @@ def wiki_repo(tmp_path: Path) -> Path:
     _make_dirs(repo)
     _write_config(repo, "my-team")
     _write_codeowners(repo)
+    _write_gitignore(repo)
     _write_seed_pages(repo)
     return repo
 
@@ -32,6 +33,14 @@ def _write_config(repo: Path, name: str) -> None:
 def _write_codeowners(repo: Path) -> None:
     (repo / ".github" / "CODEOWNERS").write_text(
         "wiki/ @my-team-wiki-maintainer\n"
+    )
+
+
+def _write_gitignore(repo: Path) -> None:
+    (repo / ".gitignore").write_text(
+        ".compost/codify/\n"
+        ".compost/synth-log/\n"
+        ".compost/assay-report.md\n"
     )
 
 

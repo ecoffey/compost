@@ -135,9 +135,11 @@ def raw_group() -> None:
               help="Slack channel name. Required when --source=slack.")
 @click.option("--no-synth", is_flag=True, default=False,
               help="Skip Tier 2 synthesis even if Tier 1 fires.")
+@click.option("--assay", is_flag=True, default=False,
+              help="Run round-trip assay after synthesis. Blocks push if assay fails.")
 @click.pass_context
 def raw_add(ctx: click.Context, source: str, title: str, captured_by: str | None,
-            origin: str, channel: str, no_synth: bool) -> None:
+            origin: str, channel: str, no_synth: bool, assay: bool) -> None:
     """Add a raw source file from stdin, commit on a new branch, and open a Gitea PR."""
     from datetime import datetime, timezone
 
@@ -171,28 +173,34 @@ def raw_add(ctx: click.Context, source: str, title: str, captured_by: str | None
         sys.exit(1)
 
     ts = datetime.now(timezone.utc)
-    branch = f"raw/{ts:%Y-%m-%d}-{slugify(title)}"
+    branch = f"raw/{ts:%Y-%m-%dT%H%M%S}-{slugify(title)}"
 
+    decision = None
+    classifications_path = repo / ".compost" / "classifications.jsonl"
+    try:
+        from compost.ingest.classifier import classify, log_decision
+        decision = classify(raw_file.path, repo)
+        log_decision(repo, raw_file.rel_path, decision)
+    except Exception as exc:
+        console.print(f"[dim]⚠ classify failed: {exc}[/dim]")
+
+    commit_files = [raw_file.path]
+    if classifications_path.exists():
+        commit_files.append(classifications_path)
     create_branch_and_commit(
-        repo, branch, [raw_file.path],
+        repo, branch, commit_files,
         message=f"raw: {title}",
     )
 
     console.print(f"[green]✓[/green] {raw_file.rel_path}")
     console.print(f"branch: {branch}")
 
-    decision = None
-    try:
-        from compost.ingest.classifier import classify, log_decision
-        decision = classify(raw_file.path, repo)
-        log_decision(repo, raw_file.rel_path, decision)
+    if decision is not None:
         if decision.fired:
             trigger_str = ", ".join(f"{t.kind}:{t.pattern}" for t in decision.triggers)
             console.print(f"[green][Tier 1] FIRE[/green] — {trigger_str}")
         else:
             console.print("[dim][Tier 1] no-fire[/dim]")
-    except Exception as exc:
-        console.print(f"[dim]⚠ classify failed: {exc}[/dim]")
 
     # Tier 2 synthesis (runs before push so both commits land in one push)
     synth_result = None
@@ -212,6 +220,33 @@ def raw_add(ctx: click.Context, source: str, title: str, captured_by: str | None
         except Exception as exc:
             console.print(f"[dim]⚠ synthesis failed: {exc}[/dim]")
             synth_result = None
+
+    if assay and synth_result and synth_result.wiki_diffs:
+        console.print("[dim][Assay] running round-trip validation...[/dim]")
+        try:
+            from compost.codify.codegen import codify as _codify
+            from compost.codify.compiler import compile_kt
+            from compost.codify.renderer import render_wiki
+            from compost.codify.compare import compare as _compare
+            _codify(repo)
+            cr = compile_kt(repo)
+            if not cr.success:
+                console.print("[red][Assay] compile failed — push blocked[/red]")
+                for err in cr.errors:
+                    console.print(f"  line {err.kt_line}: {err.message}")
+                sys.exit(1)
+            rendered = render_wiki(repo)
+            assay_result = _compare(repo, rendered)
+            if assay_result.passed:
+                console.print(f"[green][Assay] PASS[/green] — {assay_result.checked} page(s)")
+            else:
+                console.print(f"[red][Assay] FAIL — {len(assay_result.failures)} failure(s) — push blocked[/red]")
+                for f in assay_result.failures:
+                    console.print(f"  {f.page_id}: {f.missing_fields} {f.changed_fields}")
+                sys.exit(1)
+        except RuntimeError as e:
+            console.print(f"[yellow]⚠ assay error (kotlinc/java not available?): {e}[/yellow]")
+            console.print("[yellow]Continuing without assay validation.[/yellow]")
 
     try:
         push_branch(repo, "origin", branch)
@@ -460,22 +495,147 @@ def synth_log(ctx: click.Context, last: int) -> None:
     table.add_column("Timestamp")
     table.add_column("Raw file")
     table.add_column("Edits", justify="right")
-    table.add_column("Contradictions", justify="right")
+    table.add_column("In tok", justify="right")
+    table.add_column("Out tok", justify="right")
     table.add_column("Cost (USD)", justify="right")
     table.add_column("Duration (s)", justify="right")
 
     for r in runs:
+        in_tok = r.get("total_input_tokens", 0)
+        out_tok = r.get("total_output_tokens", 0)
         table.add_row(
             (r.get("run_id") or "?")[:8],
             (r.get("ts") or "")[:19].replace("T", " "),
             r.get("raw", "?"),
             str(r.get("wiki_edits", 0)),
-            str(r.get("contradictions", 0)),
+            str(in_tok) if in_tok else "-",
+            str(out_tok) if out_tok else "-",
             f"{r.get('total_cost_usd', 0):.4f}",
             f"{r.get('duration_s', 0):.1f}",
         )
 
     console.print(table)
+
+
+# ── codify commands ───────────────────────────────────────────────────────────
+
+
+@main.group("codify")
+def codify_group() -> None:
+    """Generate Kotlin type declarations from wiki frontmatter."""
+
+
+@codify_group.command("run")
+@click.option("--compile", "do_compile", is_flag=True, default=False,
+              help="Compile generated Kotlin with kotlinc after codegen.")
+@click.option("--wiki-dir", default=None, type=click.Path(resolve_path=True, path_type=Path),
+              help="Override wiki directory path.")
+@click.pass_context
+def codify_run(ctx: click.Context, do_compile: bool, wiki_dir: Path | None) -> None:
+    """Generate .compost/codify/generated/wiki.kt from wiki frontmatter."""
+    from compost.codify.codegen import codify
+
+    repo = ctx.obj["repo"] or find_repo_root(Path.cwd())
+    if repo is None:
+        console.print("[red]No .compost.yml found.[/red]")
+        sys.exit(1)
+
+    result = codify(repo, wiki_dir=wiki_dir)
+    console.print(
+        f"[green]✓[/green] {result.page_count} page(s) codified → {result.kt_path}"
+    )
+    if result.dispute_count:
+        console.print(f"[yellow]⚠ {result.dispute_count} name collision(s) detected (@Contested)[/yellow]")
+    for w in result.warnings:
+        console.print(f"[dim]  ⚠ {w}[/dim]")
+
+    if not do_compile:
+        return
+
+    from compost.codify.compiler import compile_kt
+
+    console.print("[dim]compiling...[/dim]")
+    try:
+        compile_result = compile_kt(repo)
+    except RuntimeError as e:
+        console.print(f"[red]{e}[/red]")
+        sys.exit(1)
+
+    if compile_result.success:
+        console.print(f"[green]✓[/green] compile passed → {compile_result.jar_path}")
+    else:
+        console.print("[red]✗ compile failed[/red]")
+        for err in compile_result.errors:
+            console.print(f"  [red]line {err.kt_line}:[/red] {err.message}")
+        sys.exit(1)
+
+
+# ── assay commands ────────────────────────────────────────────────────────────
+
+
+@main.command("assay")
+@click.option("--wiki-dir", default=None, type=click.Path(resolve_path=True, path_type=Path),
+              help="Override wiki directory path.")
+@click.option("--report", is_flag=True, default=False,
+              help="Write markdown report to .compost/assay-report.md.")
+@click.pass_context
+def assay_cmd(ctx: click.Context, wiki_dir: Path | None, report: bool) -> None:
+    """Round-trip validation: codify → compile → render → fuzzy compare."""
+    from compost.codify.codegen import codify
+    from compost.codify.compiler import compile_kt
+    from compost.codify.renderer import render_wiki
+    from compost.codify.compare import compare
+
+    repo = ctx.obj["repo"] or find_repo_root(Path.cwd())
+    if repo is None:
+        console.print("[red]No .compost.yml found.[/red]")
+        sys.exit(1)
+
+    console.print("[dim]codifying...[/dim]")
+    codify(repo, wiki_dir=wiki_dir)
+
+    console.print("[dim]compiling...[/dim]")
+    try:
+        compile_result = compile_kt(repo)
+    except RuntimeError as e:
+        console.print(f"[red]{e}[/red]")
+        sys.exit(1)
+
+    if not compile_result.success:
+        console.print("[red]✗ compile failed — assay aborted[/red]")
+        for err in compile_result.errors:
+            console.print(f"  [red]line {err.kt_line}:[/red] {err.message}")
+        sys.exit(1)
+
+    console.print("[dim]rendering...[/dim]")
+    try:
+        rendered = render_wiki(repo)
+    except RuntimeError as e:
+        console.print(f"[red]{e}[/red]")
+        sys.exit(1)
+
+    console.print("[dim]comparing...[/dim]")
+    result = compare(repo, rendered, wiki_dir=wiki_dir)
+
+    if result.passed:
+        console.print(
+            f"[green]✓ ASSAY PASS[/green] — {result.checked} page(s) round-tripped cleanly"
+        )
+    else:
+        console.print(f"[red]✗ ASSAY FAIL[/red] — {len(result.failures)} failure(s)")
+        for f in result.failures:
+            console.print(f"  [red]{f.page_id}[/red] ({f.source_md.relative_to(repo)})")
+            for field in f.missing_fields:
+                console.print(f"    missing field: {field}")
+            for field, orig, rend in f.changed_fields:
+                console.print(f"    changed: {field} = {orig!r} → {rend!r}")
+
+    if report:
+        _write_assay_report(repo, result)
+        console.print(f"[dim]report → {repo / '.compost' / 'assay-report.md'}[/dim]")
+
+    if not result.passed:
+        sys.exit(1)
 
 
 # ── gitea commands ────────────────────────────────────────────────────────────
@@ -618,6 +778,16 @@ def _run_doctor_checks(repo: Path) -> list[tuple[str, bool, str]]:
     checks.append(("CODEOWNERS", codeowners.exists() and codeowners.stat().st_size > 0,
                    "missing or empty .github/CODEOWNERS"))
 
+    gitignore = repo / ".gitignore"
+    _REQUIRED_IGNORES = {".compost/codify/", ".compost/synth-log/"}
+    if gitignore.exists():
+        ignored = set(gitignore.read_text().splitlines())
+        missing_ignores = _REQUIRED_IGNORES - ignored
+        checks.append((".gitignore", not missing_ignores,
+                       f"missing entries: {', '.join(sorted(missing_ignores))}" if missing_ignores else ""))
+    else:
+        checks.append((".gitignore", False, "missing — run compost init or create manually"))
+
     wiki_dir = repo / "wiki"
     errors: list[str] = []
     for md in wiki_dir.rglob("*.md"):
@@ -697,3 +867,26 @@ def _render_checks(checks: list[tuple[str, bool, str]]) -> None:
         detail = f"  [dim]{msg}[/dim]" if (msg and not ok) else ""
         table.add_row(icon, name + detail)
     console.print(table)
+
+
+def _write_assay_report(repo: Path, result) -> None:
+    from datetime import datetime, timezone
+    lines = [
+        f"# Assay Report — {datetime.now(timezone.utc):%Y-%m-%d %H:%M UTC}",
+        "",
+        f"**Result:** {'PASS' if result.passed else 'FAIL'}  ",
+        f"**Pages checked:** {result.checked}  ",
+        f"**Failures:** {len(result.failures)}",
+        "",
+    ]
+    for f in result.failures:
+        lines.append(f"## {f.page_id}")
+        lines.append(f"Source: `{f.source_md.relative_to(repo)}`")
+        if f.missing_fields:
+            lines.append(f"Missing: {', '.join(f.missing_fields)}")
+        for field, orig, rend in f.changed_fields:
+            lines.append(f"- `{field}`: `{orig}` → `{rend}`")
+        lines.append("")
+    report_path = repo / ".compost" / "assay-report.md"
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    report_path.write_text("\n".join(lines))

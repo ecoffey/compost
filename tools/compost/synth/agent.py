@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from compost.model.frontmatter import parse_frontmatter
 from compost.qmd import qmd_get, qmd_query
 from compost.repo import load_repo_config
 from compost.synth.log import log_event, open_run
@@ -75,11 +76,12 @@ def synthesize(
     index = repo_config["qmd_index"]
     raw_rel = str(raw_path.relative_to(repo))
     raw_content = raw_path.read_text()
+    _, raw_body = parse_frontmatter(raw_path)
 
     _log(log_path, "run_start",
          run_id=run_id, raw=raw_rel, model=config.model, provider=config.provider)
 
-    query_text = raw_content.replace("\n", " ")[:300]
+    query_text = (raw_body or raw_content).replace("\n", " ")[:300]
     candidates = qmd_query(query_text, index, "wiki", limit=config.max_candidates)
 
     _log(log_path, "qmd_candidates",
@@ -89,7 +91,7 @@ def synthesize(
     if not candidates:
         duration = time.monotonic() - start
         _log(log_path, "run_complete", run_id=run_id,
-             total_cost_usd=0.0, wiki_edits=0, contradictions=0,
+             raw=raw_rel, total_cost_usd=0.0, wiki_edits=0, contradictions=0,
              duration_s=round(duration, 2))
         return SynthesisResult(
             run_id=run_id, wiki_diffs=[],
@@ -98,6 +100,8 @@ def synthesize(
         )
 
     total_cost = 0.0
+    total_input_tokens = 0
+    total_output_tokens = 0
     call_n = 0
 
     # Phase A: find which pages need updating
@@ -108,6 +112,8 @@ def synthesize(
     text, usage = _call_provider(config, system, messages, cache_system=False)
     cost = _compute_cost(config.model, usage)
     total_cost += cost
+    total_input_tokens += usage["input_tokens"]
+    total_output_tokens += usage["output_tokens"]
     affected = _parse_find_affected(text)
 
     _log(log_path, "llm_response", run_id=run_id, call_n=call_n,
@@ -123,6 +129,9 @@ def synthesize(
         page_path = item.get("page", "")
         if not page_path:
             continue
+        # Strip qmd:// URI prefix that the LLM may echo back from candidate file keys
+        if page_path.startswith("qmd://"):
+            page_path = page_path[len("qmd://"):]
         is_new_hint = item.get("is_new", False)
         abs_page = repo / page_path
         existing = abs_page.read_text() if abs_page.exists() else ""
@@ -135,6 +144,8 @@ def synthesize(
         edit_text, edit_usage = _call_provider(config, sys_p, msgs, cache_system=True)
         edit_cost = _compute_cost(config.model, edit_usage)
         total_cost += edit_cost
+        total_input_tokens += edit_usage["input_tokens"]
+        total_output_tokens += edit_usage["output_tokens"]
 
         _log(log_path, "llm_response", run_id=run_id, call_n=call_n,
              input_tokens=edit_usage["input_tokens"],
@@ -163,7 +174,9 @@ def synthesize(
 
     duration = time.monotonic() - start
     _log(log_path, "run_complete", run_id=run_id,
-         total_cost_usd=round(total_cost, 6),
+         raw=raw_rel, total_cost_usd=round(total_cost, 6),
+         total_input_tokens=total_input_tokens,
+         total_output_tokens=total_output_tokens,
          wiki_edits=len(wiki_diffs),
          contradictions=len(contradictions),
          duration_s=round(duration, 2))

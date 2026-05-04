@@ -29,20 +29,6 @@ If isolation is NOT guaranteed, collection names across different wiki instances
 
 ---
 
-## Synthesis pipeline observability dashboard
-
-**Context:** Deferred from the Phase 4 plan. Before the synthesis pipeline is used daily, there needs to be a way to observe it: watch invocations, inspect LLM session input/output, track token cost per run.
-
-**Minimum viable form:**
-- Structured JSONL event log per synthesis run written to `.compost/synth-log/`
-- `tc synth log` view command that renders recent runs (inputs, outputs, cost, pass/fail)
-
-**Full form (eventual):** a richer dashboard surface, likely a local web UI or a rendered markdown report, covering invocation history, cost trends, and diff previews.
-
-**When to revisit:** Phase 8 is the natural landing zone, since we will already be building the long-running worker with per-run visibility at that point.
-
----
-
 ## TUI
 
 **Context**: UX for interacting with a wiki both to browse content and manage raw / synthesis flows
@@ -90,4 +76,42 @@ A knowledge base implemented as Go source code where `go build` is the consisten
 
 **Go-source KB approach:** probably not right for compost's target audience (teams writing markdown), but worth revisiting if the wiki ever needs formal consistency checking beyond frontmatter lint.
 
-**When to revisit:** Phase 5 adversarial check gate design. The metabolism phases are the natural template for Phase 8 long-running synthesis daemon.
+**When to revisit:** Phase 5 Kotlin consistency layer shipped. The metabolism phases are the template for Phase 9 `compost tend` subcommands.
+
+---
+
+## Structured `TheoryOf` claims for auto-dispute detection
+
+**Context:** `TheoryOf(subject, claim, prov)` currently takes a free-form `claim: String`. Codegen
+can only detect conflicts when humans explicitly annotate competing positions with `@Contested`.
+
+**Idea:** make `claim` structured — a predicate slot plus an object value — so codegen can detect
+likely conflicts automatically. If two `TheoryOf` records share the same subject AND the same
+predicate slot but have different object values, that is a structural conflict codegen can flag
+without any human annotation.
+
+Example shape (predicate as typed enum or sealed class):
+
+```kotlin
+TheoryOf(subject = authService, predicate = AuthMechanism, value = "JWT tokens", prov = ...)
+TheoryOf(subject = authService, predicate = AuthMechanism, value = "session cookies", prov = ...)
+// same subject + same predicate + different value → codegen auto-generates Disputes
+```
+
+**Requires:** designing a predicate vocabulary (what predicates exist for each `WikiPage` subtype,
+how they are typed, whether predicates are open or closed). This is non-trivial and should wait
+until there are enough real `claims.kt` examples to see which predicates recur naturally.
+
+**When to revisit:** after the first real wiki instance has accumulated several weeks of
+`claims.kt` entries. The recurring predicate patterns will surface the right vocabulary.
+
+---
+
+## Initialize from existing documentation and artifacts
+
+**Context**: Bootstrapping this system will almost certainly occur in a scenario where there is already lots of
+existing wiki content, commit events, decisions, etc. Need some way to sort through all that. Things I'm concerned
+about:
+
+- Preserving accurate timestamps from the past
+- Doing this work batch / async so that it can continue loading in historical context while its being used

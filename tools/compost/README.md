@@ -106,6 +106,64 @@ View recent synthesis runs:
 COMPOST_REPO=. compost synth log --last 5
 ```
 
+## Kotlin Consistency Layer
+
+Compost generates a typed Kotlin representation of the wiki and uses `kotlinc` as a consistency
+oracle. The markdown frontmatter is always primary; Kotlin is always derived.
+
+**Prerequisites:** install Kotlin via SDKMAN (`sdk install kotlin`).
+
+```bash
+# Generate wiki.kt from wiki frontmatter
+compost codify run
+
+# Generate and compile (kotlinc must be on PATH)
+compost codify run --compile
+
+# Full round-trip: codify → compile → render → fuzzy compare
+compost assay
+
+# Assay with markdown report
+compost assay --report
+
+# Validate wiki edits produced by synthesis before pushing
+compost raw add --source decision --title "..." --assay < content.md
+```
+
+A compile pass means all wiki frontmatter is structurally consistent with the schema. `compost
+assay` also verifies the codegen is lossless: the compiled Kotlin, when run, produces output that
+matches the original frontmatter for all key fields.
+
+### Human-authored claims
+
+Create `wiki/claims.kt` to write typed assertions that reference generated page variables:
+
+```kotlin
+// wiki/claims.kt — hand-authored; committed to version control
+// References variables declared in the generated wiki.kt.
+
+@Contested val jwtPositionByPlatform = TheoryOf(
+    subject = authService,   // compile error if authService doesn't exist in wiki.kt
+    claim = "JWT is stateless and scales horizontally",
+    prov = Provenance(origin = "internal-discussion", ingestedAt = "2026-04-15", ingestedBy = "eoin")
+)
+
+@Contested val sessionPositionByAlice = TheoryOf(
+    subject = authService,
+    claim = "Session cookies are simpler and immediately revocable",
+    prov = Provenance(origin = "raw/slack/2026-04-14-eng.md", ingestedAt = "2026-04-14", ingestedBy = "alice")
+)
+```
+
+`claims.kt` is included in the compile automatically when present. Two or more `@Contested
+TheoryOf` sharing the same subject cause codegen to auto-generate a `Disputes` record and mark
+that page as `contested = true`. A contested page with `confidence > 0.8` fails `compost assay`.
+
+| Command | Description |
+|---|---|
+| `compost codify run [--compile]` | Generate wiki.kt; optionally compile |
+| `compost assay [--report]` | Full round-trip validation |
+
 ## Gitea integration
 
 Configure Gitea as the PR backend:
