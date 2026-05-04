@@ -1,0 +1,128 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "6335581ab540",
+  "session_id": "4e85dfb4-807e-4c69-b49a-db7632c6035d",
+  "strategy": "manual-commit",
+  "created_at": "2026-05-04T21:55:09.445104Z",
+  "branch": "main",
+  "checkpoints_count": 13,
+  "files_touched": [
+    "_plans/2026-05-04-0142-kotlin-consistency-layer-high-level.md",
+    "_plans/2026-05-04-0142-kotlin-consistency-layer-impl.md",
+    "_plans/backlog.md"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-sonnet-4-6",
+  "turn_id": "2fd576ee3e36",
+  "token_usage": {
+    "input_tokens": 2091,
+    "cache_creation_tokens": 627830,
+    "cache_read_tokens": 13093938,
+    "output_tokens": 122038,
+    "api_call_count": 141
+  },
+  "session_metrics": {
+    "turn_count": 22
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-05-04T21:55:09.39549Z",
+    "agent_lines": 2321,
+    "agent_removed": 15,
+    "human_added": 1572,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 3893,
+    "total_lines_changed": 3923,
+    "agent_percentage": 59.54626561305124,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 453,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 3,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 1949,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 4,
+      "user_lines_added": 1,
+      "user_lines_removed": 0,
+      "agent_lines_added": 2032,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "_plans/2026-05-04-0142-kotlin-consistency-layer-impl.md": 1
+      }
+    },
+    {
+      "checkpoint_number": 5,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 2055,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 6,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 2055,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 7,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 2055,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 8,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 2055,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 9,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 2055,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 10,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 2055,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 11,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 2055,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 12,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 2055,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 13,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 2083,
+      "agent_lines_removed": 1
+    }
+  ]
+}

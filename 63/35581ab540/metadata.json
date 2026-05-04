@@ -1,0 +1,27 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "6335581ab540",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 13,
+  "files_touched": [
+    "_plans/2026-05-04-0142-kotlin-consistency-layer-high-level.md",
+    "_plans/2026-05-04-0142-kotlin-consistency-layer-impl.md",
+    "_plans/backlog.md"
+  ],
+  "sessions": [
+    {
+      "metadata": "/63/35581ab540/0/metadata.json",
+      "transcript": "/63/35581ab540/0/full.jsonl",
+      "content_hash": "/63/35581ab540/0/content_hash.txt",
+      "prompt": "/63/35581ab540/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 2091,
+    "cache_creation_tokens": 627830,
+    "cache_read_tokens": 13093938,
+    "output_tokens": 122038,
+    "api_call_count": 141
+  }
+}
