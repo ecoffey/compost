@@ -1,0 +1,95 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "1b605f8aab50",
+  "session_id": "8e06d819-f4ec-4d2a-80c0-d0eb2e6e9b80",
+  "strategy": "manual-commit",
+  "created_at": "2026-05-04T02:59:22.780442Z",
+  "branch": "main",
+  "checkpoints_count": 5,
+  "files_touched": [
+    "AGENTS.md",
+    "_plans/2026-05-03-phase4-synth-agent-high-level.md",
+    "_plans/2026-05-03-phase4-synth-agent-impl.md",
+    "_plans/backlog.md"
+  ],
+  "agent": "Claude Code",
+  "model": "",
+  "turn_id": "39ec4f830e6e",
+  "token_usage": {
+    "input_tokens": 42,
+    "cache_creation_tokens": 216457,
+    "cache_read_tokens": 2570139,
+    "output_tokens": 58461,
+    "api_call_count": 29
+  },
+  "session_metrics": {
+    "turn_count": 5
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-05-04T02:59:22.757858Z",
+    "agent_lines": 2075,
+    "agent_removed": 0,
+    "human_added": 2234,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 4309,
+    "total_lines_changed": 4370,
+    "agent_percentage": 47.48283752860412,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 109,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".claude/agents/entire-search.md": 25,
+        ".claude/settings.json": 84
+      }
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 2,
+      "user_lines_removed": 0,
+      "agent_lines_added": 405,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "_plans/2026-05-03-phase4-synth-agent-high-level.md": 2
+      }
+    },
+    {
+      "checkpoint_number": 3,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 452,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 4,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 458,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 5,
+      "user_lines_added": 5,
+      "user_lines_removed": 0,
+      "agent_lines_added": 1987,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "_plans/2026-05-03-phase4-synth-agent-impl.md": 1,
+        "_plans/backlog.md": 4
+      }
+    },
+    {
+      "checkpoint_number": 6,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 2006,
+      "agent_lines_removed": 0
+    }
+  ]
+}
