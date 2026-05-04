@@ -1,0 +1,18 @@
+persit this to AGENTS.md: ```Suggestion for persisting this feedback:
+
+This is reusable and worth saving to AGENTS.md: whenever we use an external API that returns usage metrics but not cost, hardcode the pricing table with a comment explaining the reason and a link to where the rates are published. It's a common pattern (OpenAI, Anthropic, Bedrock all work this way). Want me to add a note to AGENTS.md?```
+
+then`/implement @_plans/2026-05-03-phase4-synth-agent-impl.md `
+
+---
+
+<ide_opened_file>The user opened the file /Users/eoin/workspace/compost/tools/compost/compost/synth/prompts/propose_edit.md in the IDE. This may or may not be related to the current task.</ide_opened_file>
+aren't we using uv?
+
+---
+
+lets make sure to update AGENTS.md about uv generally, and extract a Justfile/Makefile to handle common tasks like running tests?
+
+---
+
+why in tools/cmpost? don't we want the Justfile at the repo root?

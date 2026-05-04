@@ -1,0 +1,104 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "1b605f8aab50",
+  "session_id": "134e8214-abd7-406a-92b7-ae969d21a548",
+  "strategy": "manual-commit",
+  "created_at": "2026-05-04T02:59:21.888066Z",
+  "branch": "main",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "AGENTS.md",
+    "Justfile",
+    "_plans/2026-05-03-phase4-synth-agent-high-level.md",
+    "_plans/2026-05-03-phase4-synth-agent-impl.md",
+    "_plans/backlog.md",
+    "tools/compost/cli.py",
+    "tools/compost/ingest/git.py",
+    "tools/compost/ingest/pr.py",
+    "tools/compost/mcp/tools.py",
+    "tools/compost/pyproject.toml",
+    "tools/compost/qmd.py",
+    "tools/compost/synth/__init__.py",
+    "tools/compost/synth/agent.py",
+    "tools/compost/synth/diff_writer.py",
+    "tools/compost/synth/log.py",
+    "tools/compost/synth/prompt.py",
+    "tools/compost/synth/prompts/find_affected.md",
+    "tools/compost/synth/prompts/propose_edit.md",
+    "tools/compost/tests/test_git.py",
+    "tools/compost/tests/test_pr.py",
+    "tools/compost/uv.lock"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-sonnet-4-6",
+  "turn_id": "120a8084de79",
+  "token_usage": {
+    "input_tokens": 2010,
+    "cache_creation_tokens": 391274,
+    "cache_read_tokens": 7507978,
+    "output_tokens": 91906,
+    "api_call_count": 92
+  },
+  "session_metrics": {
+    "turn_count": 2
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-05-04T02:59:21.848957Z",
+    "agent_lines": 1527,
+    "agent_removed": 0,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 61,
+    "total_committed": 1527,
+    "total_lines_changed": 1588,
+    "agent_percentage": 96.15869017632241,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 3217,
+      "user_lines_removed": 61,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "AGENTS.md": 23,
+        "_plans/2026-05-03-phase4-synth-agent-high-level.md": 452,
+        "_plans/2026-05-03-phase4-synth-agent-impl.md": 1544,
+        "_plans/backlog.md": 4,
+        "tools/compost/README.md": 128,
+        "tools/compost/cli.py": 126,
+        "tools/compost/compost/qmd.py": 34,
+        "tools/compost/compost/synth/agent.py": 304,
+        "tools/compost/compost/synth/diff_writer.py": 27,
+        "tools/compost/compost/synth/log.py": 45,
+        "tools/compost/compost/synth/prompt.py": 46,
+        "tools/compost/compost/synth/prompts/find_affected.md": 18,
+        "tools/compost/compost/synth/prompts/propose_edit.md": 22,
+        "tools/compost/ingest/git.py": 12,
+        "tools/compost/ingest/pr.py": 9,
+        "tools/compost/mcp/tools.py": 1,
+        "tools/compost/pyproject.toml": 3,
+        "tools/compost/tests/test_git.py": 27,
+        "tools/compost/tests/test_pr.py": 65,
+        "tools/compost/tests/test_synth.py": 327
+      },
+      "user_removed_per_file": {
+        "tools/compost/cli.py": 2,
+        "tools/compost/ingest/pr.py": 10,
+        "tools/compost/mcp/tools.py": 31,
+        "tools/compost/tests/test_pr.py": 18
+      }
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 26,
+      "user_lines_removed": 0,
+      "agent_lines_added": 4226,
+      "agent_lines_removed": 61,
+      "user_added_per_file": {
+        "tools/compost/Justfile": 26
+      }
+    }
+  ]
+}

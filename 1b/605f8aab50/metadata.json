@@ -1,0 +1,45 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "1b605f8aab50",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "AGENTS.md",
+    "Justfile",
+    "_plans/2026-05-03-phase4-synth-agent-high-level.md",
+    "_plans/2026-05-03-phase4-synth-agent-impl.md",
+    "_plans/backlog.md",
+    "tools/compost/cli.py",
+    "tools/compost/ingest/git.py",
+    "tools/compost/ingest/pr.py",
+    "tools/compost/mcp/tools.py",
+    "tools/compost/pyproject.toml",
+    "tools/compost/qmd.py",
+    "tools/compost/synth/__init__.py",
+    "tools/compost/synth/agent.py",
+    "tools/compost/synth/diff_writer.py",
+    "tools/compost/synth/log.py",
+    "tools/compost/synth/prompt.py",
+    "tools/compost/synth/prompts/find_affected.md",
+    "tools/compost/synth/prompts/propose_edit.md",
+    "tools/compost/tests/test_git.py",
+    "tools/compost/tests/test_pr.py",
+    "tools/compost/uv.lock"
+  ],
+  "sessions": [
+    {
+      "metadata": "/1b/605f8aab50/0/metadata.json",
+      "transcript": "/1b/605f8aab50/0/full.jsonl",
+      "content_hash": "/1b/605f8aab50/0/content_hash.txt",
+      "prompt": "/1b/605f8aab50/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 2010,
+    "cache_creation_tokens": 391274,
+    "cache_read_tokens": 7507978,
+    "output_tokens": 91906,
+    "api_call_count": 92
+  }
+}
