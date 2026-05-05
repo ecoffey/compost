@@ -1,0 +1,93 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "b696af222c12",
+  "session_id": "4019e58c-e4a6-48fa-b49c-d13a07b2361e",
+  "strategy": "manual-commit",
+  "created_at": "2026-05-05T16:00:59.406588Z",
+  "branch": "main",
+  "checkpoints_count": 3,
+  "files_touched": [
+    "_plans/2026-05-04-2200-phase5-adversarial-checks-high-level.md",
+    "_plans/2026-05-04-2359-phase5-adversarial-checks-impl.md",
+    "_plans/backlog.md"
+  ],
+  "agent": "Claude Code",
+  "model": "",
+  "turn_id": "ca00ef7a7087",
+  "token_usage": {
+    "input_tokens": 214,
+    "cache_creation_tokens": 77994,
+    "cache_read_tokens": 1293771,
+    "output_tokens": 12335,
+    "api_call_count": 24
+  },
+  "session_metrics": {
+    "turn_count": 3
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-05-05T16:00:59.39383Z",
+    "agent_lines": 0,
+    "agent_removed": 0,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 0,
+    "total_lines_changed": 0,
+    "agent_percentage": 0,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 3933,
+      "user_lines_removed": 4,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "AGENTS.md": 15,
+        "_plans/2026-05-04-2200-phase5-adversarial-checks-high-level.md": 559,
+        "_plans/2026-05-04-2359-phase5-adversarial-checks-impl.md": 1687,
+        "_plans/backlog.md": 9,
+        "tools/compost/README.md": 35,
+        "tools/compost/bootstrap.py": 1,
+        "tools/compost/checks/_llm.py": 53,
+        "tools/compost/checks/citation.py": 95,
+        "tools/compost/checks/contradiction.py": 107,
+        "tools/compost/checks/human_edit_guard.py": 133,
+        "tools/compost/checks/kotlin_assay.py": 75,
+        "tools/compost/checks/provenance.py": 32,
+        "tools/compost/checks/recent_raw.py": 116,
+        "tools/compost/checks/runner.py": 225,
+        "tools/compost/checks/scope.py": 53,
+        "tools/compost/cli.py": 149,
+        "tools/compost/codify/codegen.py": 1,
+        "tools/compost/codify/schema/CompostSchema.kt": 4,
+        "tools/compost/pyproject.toml": 1,
+        "tools/compost/tests/conftest.py": 1,
+        "tools/compost/tests/test_checks.py": 489,
+        "tools/compost/tests/test_pr.py": 93
+      },
+      "user_removed_per_file": {
+        "tools/compost/cli.py": 2,
+        "tools/compost/codify/schema/CompostSchema.kt": 2
+      }
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 3933,
+      "agent_lines_removed": 4
+    },
+    {
+      "checkpoint_number": 3,
+      "user_lines_added": 2,
+      "user_lines_removed": 0,
+      "agent_lines_added": 4297,
+      "agent_lines_removed": 4,
+      "user_added_per_file": {
+        "_plans/2026-05-05-1540-phase7-8-shims-worker-high-level.md": 2
+      }
+    }
+  ]
+}

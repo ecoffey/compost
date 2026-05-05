@@ -1,0 +1,27 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "b696af222c12",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 3,
+  "files_touched": [
+    "_plans/2026-05-04-2200-phase5-adversarial-checks-high-level.md",
+    "_plans/2026-05-04-2359-phase5-adversarial-checks-impl.md",
+    "_plans/backlog.md"
+  ],
+  "sessions": [
+    {
+      "metadata": "/b6/96af222c12/0/metadata.json",
+      "transcript": "/b6/96af222c12/0/full.jsonl",
+      "content_hash": "/b6/96af222c12/0/content_hash.txt",
+      "prompt": "/b6/96af222c12/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 214,
+    "cache_creation_tokens": 77994,
+    "cache_read_tokens": 1293771,
+    "output_tokens": 12335,
+    "api_call_count": 24
+  }
+}
