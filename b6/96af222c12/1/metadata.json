@@ -3,13 +3,30 @@
   "checkpoint_id": "b696af222c12",
   "session_id": "de37d91a-dee3-445f-a335-99413e022c83",
   "strategy": "manual-commit",
-  "created_at": "2026-05-05T16:01:00.260494Z",
+  "created_at": "2026-05-05T16:01:30.589546Z",
   "branch": "main",
-  "checkpoints_count": 6,
+  "checkpoints_count": 1,
   "files_touched": [
-    "_plans/2026-05-04-2200-phase5-adversarial-checks-high-level.md",
-    "_plans/2026-05-04-2359-phase5-adversarial-checks-impl.md",
-    "_plans/backlog.md"
+    "AGENTS.md",
+    "tools/compost/README.md",
+    "tools/compost/bootstrap.py",
+    "tools/compost/checks/__init__.py",
+    "tools/compost/checks/_llm.py",
+    "tools/compost/checks/citation.py",
+    "tools/compost/checks/contradiction.py",
+    "tools/compost/checks/human_edit_guard.py",
+    "tools/compost/checks/kotlin_assay.py",
+    "tools/compost/checks/provenance.py",
+    "tools/compost/checks/recent_raw.py",
+    "tools/compost/checks/runner.py",
+    "tools/compost/checks/scope.py",
+    "tools/compost/cli.py",
+    "tools/compost/codify/codegen.py",
+    "tools/compost/codify/schema/CompostSchema.kt",
+    "tools/compost/pyproject.toml",
+    "tools/compost/tests/conftest.py",
+    "tools/compost/tests/test_checks.py",
+    "tools/compost/tests/test_pr.py"
   ],
   "agent": "Claude Code",
   "model": "claude-sonnet-4-6",
@@ -25,62 +42,15 @@
     "turn_count": 6
   },
   "initial_attribution": {
-    "calculated_at": "2026-05-05T16:01:00.188612Z",
-    "agent_lines": 2254,
-    "agent_removed": 0,
-    "human_added": 1,
+    "calculated_at": "2026-05-05T16:01:30.522534Z",
+    "agent_lines": 1678,
+    "agent_removed": 4,
+    "human_added": 2255,
     "human_modified": 0,
     "human_removed": 0,
-    "total_committed": 2255,
-    "total_lines_changed": 2255,
-    "agent_percentage": 99.95565410199556,
+    "total_committed": 3933,
+    "total_lines_changed": 3937,
+    "agent_percentage": 42.72288544577089,
     "metric_version": 2
-  },
-  "prompt_attributions": [
-    {
-      "checkpoint_number": 1,
-      "user_lines_added": 0,
-      "user_lines_removed": 0,
-      "agent_lines_added": 0,
-      "agent_lines_removed": 0
-    },
-    {
-      "checkpoint_number": 2,
-      "user_lines_added": 1,
-      "user_lines_removed": 0,
-      "agent_lines_added": 500,
-      "agent_lines_removed": 0,
-      "user_added_per_file": {
-        "_plans/2026-05-04-2200-phase5-adversarial-checks-high-level.md": 1
-      }
-    },
-    {
-      "checkpoint_number": 3,
-      "user_lines_added": 0,
-      "user_lines_removed": 0,
-      "agent_lines_added": 559,
-      "agent_lines_removed": 0
-    },
-    {
-      "checkpoint_number": 4,
-      "user_lines_added": 0,
-      "user_lines_removed": 0,
-      "agent_lines_added": 2246,
-      "agent_lines_removed": 0
-    },
-    {
-      "checkpoint_number": 5,
-      "user_lines_added": 0,
-      "user_lines_removed": 0,
-      "agent_lines_added": 3788,
-      "agent_lines_removed": 2
-    },
-    {
-      "checkpoint_number": 6,
-      "user_lines_added": 0,
-      "user_lines_removed": 0,
-      "agent_lines_added": 3921,
-      "agent_lines_removed": 2
-    }
-  ]
+  }
 }
