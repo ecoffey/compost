@@ -77,3 +77,18 @@ Do not edit it directly. Schema changes (adding a new wiki page type) require up
 - uses: fwilhe2/setup-kotlin@v1
 ```
 No Python or compost code changes required.
+
+
+## Adversarial Checks
+
+`compost pr merge` now runs Tier 2.5 adversarial checks before merging any branch. The check
+gate is automatic; use `--no-checks` only for raw-only branches with no wiki edits.
+
+`ANTHROPIC_API_KEY` must be set for LLM-based checks (checks 4-6: contradiction scan, recent
+raw scan, citation faithfulness). The same key used for synthesis works here.
+
+To bypass failing checks with an audit trail:
+```bash
+compost pr merge --override --reason "contradiction already declared in PR; safe to merge"
+```
+The override reason is appended to `wiki/log.md` and committed to main.

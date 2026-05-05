@@ -232,6 +232,7 @@ def _emit_runbook(var: str, stem: str, fm: dict, prov: str, contested: bool = Fa
         f"    prov = {prov},",
         f"    contested = {'true' if contested else 'false'},",
         f"    owner = {_qs(_first_owner(fm))},",
+        f'    status = {_qs(fm.get("status") or "active")},',
         ")",
     ]
 

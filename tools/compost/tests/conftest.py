@@ -41,6 +41,7 @@ def _write_gitignore(repo: Path) -> None:
         ".compost/codify/\n"
         ".compost/synth-log/\n"
         ".compost/assay-report.md\n"
+        ".compost/checks/\n"
     )
 
 

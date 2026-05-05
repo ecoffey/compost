@@ -50,6 +50,7 @@ def bootstrap_repo(path: Path, name: str) -> None:
         ".compost/codify/\n"
         ".compost/synth-log/\n"
         ".compost/assay-report.md\n"
+        ".compost/checks/\n"
     )
 
     codeowners = (

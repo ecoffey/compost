@@ -32,6 +32,7 @@ packages = [
     "compost.ingest",
     "compost.synth",
     "compost.codify",
+    "compost.checks",
 ]
 
 [tool.setuptools.package-data]

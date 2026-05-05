@@ -1,10 +1,14 @@
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
+from unittest.mock import patch
 
 import click
 import pytest
+from click.testing import CliRunner
 
+from compost.checks.runner import CheckResult, ChecksConfig, Finding
+from compost.cli import main
 from compost.gitea.client import GiteaPR
 from compost.ingest.pr import create_pr, merge_pr
 
@@ -251,3 +255,92 @@ def test_create_pr_body_omits_tier2_when_no_result(compost_git_repo):
     assert "Tier 2" not in body
 
     subprocess.run(["git", "checkout", "main"], cwd=repo, check=True, capture_output=True)
+
+
+# ── pr merge CLI (check gate options) ────────────────────────────────────────
+
+
+def _setup_raw_branch(repo: Path, branch: str) -> None:
+    raw = repo / "raw" / "notes" / "test.md"
+    raw.parent.mkdir(parents=True, exist_ok=True)
+    raw.write_text("body")
+    subprocess.run(["git", "checkout", "-b", branch], cwd=repo, check=True, capture_output=True)
+    subprocess.run(["git", "add", str(raw)], cwd=repo, check=True)
+    subprocess.run(["git", "commit", "-m", "add raw"], cwd=repo, check=True, capture_output=True)
+
+
+def _passing_checks() -> list[CheckResult]:
+    return [CheckResult(name="kotlin_assay", status="skipped",
+                        findings=[], skip_reason="kotlinc absent")]
+
+
+def _failing_checks() -> list[CheckResult]:
+    return [CheckResult(
+        name="provenance", status="fail",
+        findings=[Finding(check="provenance", severity="fail",
+                          message="sources list is empty", page="wiki/services/foo.md")],
+    )]
+
+
+def test_pr_merge_cli_no_checks_skips_run_checks(compost_git_repo):
+    """--no-checks flag bypasses run_checks entirely and merges."""
+    repo = compost_git_repo
+    _setup_raw_branch(repo, "raw/2026-05-04-no-checks")
+
+    runner = CliRunner()
+    with (
+        patch("compost.checks.runner.run_checks") as mock_checks,
+        patch("compost.ingest.pr.merge_pr",
+              return_value=GiteaPR(99, "http://gitea/pulls/99", "merged")),
+        patch("compost.cli._load_gitea_client", return_value=FakeGiteaClient()),
+    ):
+        result = runner.invoke(main, ["--repo", str(repo), "pr", "merge", "--no-checks"])
+
+    mock_checks.assert_not_called()
+    assert result.exit_code == 0, result.output
+
+
+def test_pr_merge_cli_failing_checks_block_merge(compost_git_repo):
+    """Failing checks cause a non-zero exit and prevent merge_pr from being called."""
+    repo = compost_git_repo
+    _setup_raw_branch(repo, "raw/2026-05-04-check-fail")
+
+    runner = CliRunner()
+    merge_calls: list[int] = []
+    with (
+        patch("compost.checks.runner.run_checks", return_value=_failing_checks()),
+        patch("compost.checks.runner.load_checks_config", return_value=ChecksConfig()),
+        patch("compost.checks.runner.infer_raw_path", return_value=None),
+        patch("compost.checks.runner.write_check_report", return_value=Path("/tmp/r.md")),
+        patch("compost.ingest.pr.merge_pr",
+              side_effect=lambda *a, **kw: merge_calls.append(1)),
+        patch("compost.cli._load_gitea_client", return_value=FakeGiteaClient()),
+    ):
+        result = runner.invoke(main, ["--repo", str(repo), "pr", "merge"])
+
+    assert result.exit_code != 0
+    assert merge_calls == []
+
+
+def test_pr_merge_cli_override_allows_merge_despite_failing_checks(compost_git_repo):
+    """--override --reason bypasses a failing check gate and merges."""
+    repo = compost_git_repo
+    _setup_raw_branch(repo, "raw/2026-05-04-override")
+
+    runner = CliRunner()
+    with (
+        patch("compost.checks.runner.run_checks", return_value=_failing_checks()),
+        patch("compost.checks.runner.load_checks_config", return_value=ChecksConfig()),
+        patch("compost.checks.runner.infer_raw_path", return_value=None),
+        patch("compost.checks.runner.write_check_report", return_value=Path("/tmp/r.md")),
+        patch("compost.ingest.pr.merge_pr",
+              return_value=GiteaPR(99, "http://gitea/pulls/99", "merged")),
+        patch("compost.cli._load_gitea_client", return_value=FakeGiteaClient()),
+        patch("compost.cli._log_override"),
+    ):
+        result = runner.invoke(
+            main,
+            ["--repo", str(repo), "pr", "merge", "--override", "--reason", "known issue"],
+        )
+
+    assert result.exit_code == 0, result.output

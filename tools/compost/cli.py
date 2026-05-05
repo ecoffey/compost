@@ -295,16 +295,51 @@ def pr_open(ctx: click.Context) -> None:
 
 
 @pr_group.command("merge")
+@click.option("--override", is_flag=True, default=False,
+              help="Merge despite failing checks. Requires --reason.")
+@click.option("--reason", default=None,
+              help="Override reason, logged to wiki/log.md. Required with --override.")
+@click.option("--no-checks", "skip_checks", is_flag=True, default=False,
+              help="Skip all adversarial checks (for raw-only PRs with no wiki edits).")
 @click.pass_context
-def pr_merge(ctx: click.Context) -> None:
+def pr_merge(ctx: click.Context, override: bool, reason: str | None, skip_checks: bool) -> None:
     """Merge the current raw/* branch via Gitea PR, then sync local repo."""
     from compost.ingest.pr import merge_pr
     from compost.gitea.client import GiteaError
+    from compost.ingest.git import current_branch, default_branch
+    from compost.checks.runner import run_checks, load_checks_config, infer_raw_path, write_check_report
 
     repo = ctx.obj["repo"] or find_repo_root(Path.cwd())
     if repo is None:
         console.print("[red]No .compost.yml found.[/red]")
         sys.exit(1)
+
+    if override and not reason:
+        console.print("[red]--override requires --reason.[/red]")
+        sys.exit(1)
+
+    branch = current_branch(repo)
+    base = default_branch(repo)
+
+    failed_check_names: list[str] = []
+    if not skip_checks:
+        raw_path = infer_raw_path(repo, branch, base)
+        config = load_checks_config(repo)
+        console.print("[dim]running checks...[/dim]")
+        results = run_checks(repo, branch, raw_path, config=config)
+
+        _render_check_results(results)
+        write_check_report(repo, branch, results)
+
+        failed = [r for r in results if r.status == "fail"]
+        failed_check_names = [r.name for r in failed]
+        if failed and not override:
+            names = ", ".join(r.name for r in failed)
+            console.print(
+                f"\n[red]✗ checks failed: {names}[/red]\n"
+                "Use [bold]--override --reason \"...\"[/bold] to bypass."
+            )
+            sys.exit(1)
 
     client = _load_gitea_client(repo)
 
@@ -314,6 +349,9 @@ def pr_merge(ctx: click.Context) -> None:
     except GiteaError as e:
         console.print(f"[red]Gitea error: {e}[/red]")
         sys.exit(1)
+
+    if override and reason and not skip_checks and failed_check_names:
+        _log_override(repo, branch, reason, failed_check_names)
 
 
 # ── classify commands ─────────────────────────────────────────────────────────
@@ -638,6 +676,52 @@ def assay_cmd(ctx: click.Context, wiki_dir: Path | None, report: bool) -> None:
         sys.exit(1)
 
 
+# ── checks commands ───────────────────────────────────────────────────────────
+
+
+@main.group("checks")
+def checks_group() -> None:
+    """Tier 2.5 adversarial checks: verify wiki edits before merge."""
+
+
+@checks_group.command("run")
+@click.option("--branch", default=None,
+              help="Branch to check. Defaults to current branch.")
+@click.option("--raw", "raw_rel", default=None,
+              help="Triggering raw file (relative to repo). Inferred from branch commits if omitted.")
+@click.pass_context
+def checks_run(ctx: click.Context, branch: str | None, raw_rel: str | None) -> None:
+    """Run all adversarial checks on a branch and write a report."""
+    from compost.checks.runner import run_checks, load_checks_config, infer_raw_path, write_check_report
+    from compost.ingest.git import current_branch, default_branch
+
+    repo = ctx.obj["repo"] or find_repo_root(Path.cwd())
+    if repo is None:
+        console.print("[red]No .compost.yml found.[/red]")
+        sys.exit(1)
+
+    if branch is None:
+        branch = current_branch(repo)
+
+    base = default_branch(repo)
+
+    if raw_rel:
+        raw_path = repo / raw_rel
+    else:
+        raw_path = infer_raw_path(repo, branch, base)
+
+    config = load_checks_config(repo)
+    results = run_checks(repo, branch, raw_path, config=config)
+
+    _render_check_results(results)
+
+    report_path = write_check_report(repo, branch, results)
+    console.print(f"[dim]report → {report_path.relative_to(repo)}[/dim]")
+
+    if any(r.status == "fail" for r in results):
+        sys.exit(1)
+
+
 # ── gitea commands ────────────────────────────────────────────────────────────
 
 
@@ -779,7 +863,7 @@ def _run_doctor_checks(repo: Path) -> list[tuple[str, bool, str]]:
                    "missing or empty .github/CODEOWNERS"))
 
     gitignore = repo / ".gitignore"
-    _REQUIRED_IGNORES = {".compost/codify/", ".compost/synth-log/"}
+    _REQUIRED_IGNORES = {".compost/codify/", ".compost/synth-log/", ".compost/checks/"}
     if gitignore.exists():
         ignored = set(gitignore.read_text().splitlines())
         missing_ignores = _REQUIRED_IGNORES - ignored
@@ -890,3 +974,66 @@ def _write_assay_report(repo: Path, result) -> None:
     report_path = repo / ".compost" / "assay-report.md"
     report_path.parent.mkdir(parents=True, exist_ok=True)
     report_path.write_text("\n".join(lines))
+
+
+def _render_check_results(results: list) -> None:
+    table = Table(show_header=True, box=None, padding=(0, 2))
+    table.add_column("Check")
+    table.add_column("Status")
+    table.add_column("Findings", justify="right")
+    table.add_column("Cost (USD)", justify="right")
+    table.add_column("Duration (s)", justify="right")
+
+    for r in results:
+        if r.status == "pass":
+            status_str = "[green]✓ pass[/green]"
+        elif r.status == "fail":
+            status_str = "[red]✗ FAIL[/red]"
+        elif r.status == "warn":
+            status_str = "[yellow]⚠ warn[/yellow]"
+        else:
+            status_str = "[dim]— skipped[/dim]"
+
+        n = str(len(r.findings)) if r.status != "skipped" else "—"
+        cost = f"{r.cost_usd:.4f}" if r.status != "skipped" else "—"
+        dur = f"{r.duration_s:.1f}" if r.status != "skipped" else "—"
+        table.add_row(r.name, status_str, n, cost, dur)
+
+    console.print(table)
+
+    all_findings = [f for r in results for f in r.findings]
+    if all_findings:
+        console.print(f"\n[red]✗ {len(all_findings)} finding(s):[/red]")
+        for f in all_findings:
+            console.print(f"  [bold]{f.check}[/bold]: {f.page or '(general)'}")
+            console.print(f"    {f.message}")
+            if f.claim_text:
+                console.print(f'    claim: "{f.claim_text}"')
+            if f.conflicting_page:
+                console.print(f"    conflicts with {f.conflicting_page}")
+                if f.conflicting_claim_text:
+                    console.print(f'    "{f.conflicting_claim_text}"')
+
+
+def _log_override(repo: Path, branch: str, reason: str, failed_checks: list[str]) -> None:
+    """Append an override entry to wiki/log.md and commit it on main."""
+    from datetime import datetime, timezone
+    from compost.ingest.git import stage_and_commit
+
+    ts = datetime.now(timezone.utc)
+    log_path = repo / "wiki" / "log.md"
+    entry = (
+        f"\n## Override: {branch} ({ts:%Y-%m-%d %H:%M UTC})\n"
+        f"Reason: {reason}\n"
+        f"Findings bypassed: {', '.join(failed_checks) or 'none'}\n"
+    )
+    if log_path.exists():
+        log_path.write_text(log_path.read_text() + entry)
+    else:
+        log_path.write_text(f"# Override Log\n{entry}")
+
+    try:
+        stage_and_commit(repo, [log_path], f"override: {branch} — {reason[:60]}")
+        console.print("[dim]override logged → wiki/log.md[/dim]")
+    except Exception as e:
+        console.print(f"[yellow]⚠ could not commit override log: {e}[/yellow]")

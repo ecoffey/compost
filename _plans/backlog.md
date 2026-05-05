@@ -68,6 +68,8 @@ A knowledge base implemented as Go source code where `go build` is the consisten
 
 1. **Disputes as a first-class predicate.** Compost's `ContradictionNote` is a stub that surfaces what the LLM notices in passing. Winze shows what a real version looks like: a typed `Disputes(wiki_page, claim_a, claim_b)` record written to a dedicated log, queryable by page, trackable over time. Phase 5's adversarial check gate should produce structured contradiction records, not free-text observations.
 
+   **Phase 5 status:** adversarial checks now produce structured `Finding` objects with `conflicting_page`, `claim_text`, and `conflicting_claim_text` fields (`checks/runner.py`). The remaining missing piece is `compost claims suggest` — a command that reads these `Finding` objects and writes draft `@Contested TheoryOf` entries to `wiki/claims.kt`.
+
 2. **Metabolism phase structure.** The dream/bias-audit/calibrate split maps cleanly onto what a compost background worker should do: dream = re-run synthesis on recently changed raw files without new ingest; bias audit = structural health checks on the wiki graph (orphan pages, provenance concentration, stale confidence scores); calibrate = track whether pages flagged as high-confidence actually stay stable.
 
 3. **`//winze:contested` annotation discipline.** Wiki frontmatter already has `confidence` and `supersedes`. Adding an explicit `contested_by: [list of raw file paths]` field would let compost surface which claims are actively disputed across the corpus — a deterministic query, not an LLM call.
@@ -115,3 +117,10 @@ about:
 
 - Preserving accurate timestamps from the past
 - Doing this work batch / async so that it can continue loading in historical context while its being used
+
+---
+
+## Feedback on PRs
+
+A user should be able to leave feedback on a PR for the compost agent to react to and update the PR. Bonus if it can also 
+update the entire process for later iterations.

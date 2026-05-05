@@ -78,7 +78,8 @@ data class RunbookPage(
     override val confidence: Float,
     override val prov: Provenance,
     override val contested: Boolean = false,
-    val owner: String
+    val owner: String,
+    val status: String
 ) : WikiPage() {
     override fun toJson() = buildString {
         append("{")
@@ -87,7 +88,8 @@ data class RunbookPage(
         append("\"title\":${js(title)},")
         append("\"confidence\":${jf(confidence)},")
         append("\"contested\":$contested,")
-        append("\"owner\":${js(owner)}")
+        append("\"owner\":${js(owner)},")
+        append("\"status\":${js(status)}")
         append("}")
     }
 }

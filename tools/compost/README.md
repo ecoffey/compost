@@ -106,6 +106,41 @@ View recent synthesis runs:
 COMPOST_REPO=. compost synth log --last 5
 ```
 
+## Tier 2.5 Adversarial Checks
+
+`compost pr merge` runs six checks before merging any branch that touches `wiki/`. Checks run
+cheapest-first and short-circuit on deterministic failures.
+
+```bash
+# Run checks on the current branch
+compost checks run
+
+# Run checks on a specific branch
+compost checks run --branch raw/2026-05-04T161353-my-change
+
+# Merge with check gate (runs checks automatically)
+compost pr merge
+
+# Override a failing check (reason is logged to wiki/log.md)
+compost pr merge --override --reason "contradiction is already declared; merging to unblock"
+
+# Skip checks entirely (raw-only PR, no wiki edits)
+compost pr merge --no-checks
+```
+
+Configure under `checks:` in `.compost.yml`:
+
+```yaml
+checks:
+  provider: anthropic
+  model: claude-sonnet-4-6
+  human_edit_days: 30
+  recent_raw_days: 90
+  scope_min_score: 0.15
+```
+
+`ANTHROPIC_API_KEY` must be set for LLM-based checks (same key as synthesis).
+
 ## Kotlin Consistency Layer
 
 Compost generates a typed Kotlin representation of the wiki and uses `kotlinc` as a consistency
