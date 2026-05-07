@@ -199,6 +199,104 @@ that page as `contested = true`. A contested page with `confidence > 0.8` fails 
 | `compost codify run [--compile]` | Generate wiki.kt; optionally compile |
 | `compost assay [--report]` | Full round-trip validation |
 
+## Shims
+
+Shims are local listeners that bridge async ingestion sources (Slack, GitHub, git checkpoints) into the compost queue. Run them alongside the synthesis worker during development.
+
+```bash
+# Start all shims (Slack on :8421, GitHub webhook on :8422, git poller in-process)
+COMPOST_REPO=. compost shims up
+
+# Stop shims started by the above
+COMPOST_REPO=. compost shims down
+
+# Show running shim PIDs
+COMPOST_REPO=. compost shims status
+```
+
+### Slack shim
+
+Simulates a Slack `reaction_added` event. The shim listens on `localhost:8421/events`.
+
+```bash
+# Fake a wiki reaction on a Slack thread
+COMPOST_REPO=. compost slack fake-react \
+  --channel C12345 --ts 1234567890.000001 \
+  --text "We decided to switch to Postgres." \
+  --user U99
+```
+
+### GitHub webhook shim
+
+Simulates a GitHub PR event with the `compost/synth` label. Listens on `localhost:8422/webhook`.
+
+```bash
+# Fake a PR opened event
+COMPOST_REPO=. compost gh fake-pr \
+  --repo acme/payments --pr 42 \
+  --branch feature/add-stripe \
+  --action opened \
+  --label compost/synth
+```
+
+### Entire shim (git checkpoint poller)
+
+Polls local git repos for new commits and materializes them as checkpoint raw files. Seed the
+poller's "seen" state from the current HEAD (so only future commits are materialized):
+
+```bash
+COMPOST_REPO=. compost entire seed --repo /path/to/source-repo
+```
+
+### Configuration
+
+Add a `shims:` block to `.compost.yml`:
+
+```yaml
+shims:
+  slack:
+    port: 8421
+    wiki_emoji: wiki
+  gh_webhook:
+    port: 8422
+  entire:
+    poll_interval_s: 10
+    targets:
+      - repo: ~/work/my-service
+        branch_prefix: feature/
+        path_filter: src/
+        gh_name: acme/my-service
+```
+
+## Worker
+
+The synthesis worker drains the on-disk queue and runs synthesis for each job. Enable async mode
+in `.compost.yml` so that `compost raw add` enqueues jobs rather than synthesizing inline:
+
+```yaml
+worker:
+  mode: async          # inline (default) | async
+  poll_interval_s: 5
+  max_retries: 3
+  retry_backoff_base_s: 30
+```
+
+```bash
+# Start the worker (blocks; Ctrl-C to stop)
+COMPOST_REPO=. compost worker up
+
+# Show queue depth and recent job states
+COMPOST_REPO=. compost worker status
+
+# Move one dead-letter job back to inbox by ID
+COMPOST_REPO=. compost worker retry --job-id <hex>
+```
+
+The queue lives under `.compost/queue/{inbox,processing,done,dead}/`. Jobs transition atomically
+via `os.rename()`. Failed jobs are retried up to `max_retries` times with exponential backoff
+(`retry_backoff_base_s * 2^(retry_count - 1)` seconds). After exhausting retries the job is
+moved to `dead/` with a human-readable `.md` companion explaining the failure.
+
 ## Gitea integration
 
 Configure Gitea as the PR backend:

@@ -42,6 +42,8 @@ def _write_gitignore(repo: Path) -> None:
         ".compost/synth-log/\n"
         ".compost/assay-report.md\n"
         ".compost/checks/\n"
+        ".compost/queue/\n"
+        ".compost/shims/\n"
     )
 
 
@@ -110,6 +112,16 @@ def compost_git_repo(git_repo: Path) -> Path:
     subprocess.run(["git", "commit", "-m", "add compost config"],
                    cwd=git_repo, check=True, capture_output=True)
     return git_repo
+
+
+@pytest.fixture
+def compost_git_repo_with_queue(compost_git_repo: Path) -> Path:
+    """compost_git_repo with queue directories initialized. Leaves HEAD on main."""
+    for d in ("inbox", "processing", "done", "dead"):
+        (compost_git_repo / ".compost" / "queue" / d).mkdir(parents=True, exist_ok=True)
+    (compost_git_repo / ".compost" / "shims").mkdir(parents=True, exist_ok=True)
+    (compost_git_repo / "_plans" / "dead-letter").mkdir(parents=True, exist_ok=True)
+    return compost_git_repo
 
 
 @pytest.fixture

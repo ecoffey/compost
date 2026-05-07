@@ -6,6 +6,10 @@ from pathlib import Path
 import click
 
 
+def _to_rel(f: Path, repo: Path) -> Path:
+    return f.relative_to(repo) if f.is_absolute() else f
+
+
 def assert_git_repo(repo: Path) -> None:
     """Raise click.UsageError if repo has no .git directory."""
     if not (repo / ".git").exists():
@@ -61,7 +65,7 @@ def create_branch_and_commit(
         )
 
     for f in files:
-        subprocess.run(["git", "add", str(f)], cwd=repo, check=True)
+        subprocess.run(["git", "add", str(_to_rel(f, repo))], cwd=repo, check=True)
 
     result = subprocess.run(
         ["git", "commit", "-m", message],
@@ -74,13 +78,14 @@ def create_branch_and_commit(
 def stage_and_commit(repo: Path, files: list[Path], message: str) -> None:
     """Stage files and commit on the current branch. Does not create a new branch."""
     for f in files:
-        subprocess.run(["git", "add", str(f)], cwd=repo, check=True)
+        subprocess.run(["git", "add", str(_to_rel(f, repo))], cwd=repo, check=True)
     result = subprocess.run(
         ["git", "commit", "-m", message],
         cwd=repo, capture_output=True, text=True,
     )
     if result.returncode != 0:
-        raise click.UsageError(f"Commit failed: {result.stderr.strip()}")
+        detail = result.stderr.strip() or result.stdout.strip()
+        raise click.UsageError(f"Commit failed: {detail}")
 
 
 def changed_files(repo: Path, branch: str, base: str) -> list[str]:

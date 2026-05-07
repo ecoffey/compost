@@ -115,7 +115,10 @@ def session_show(session_id: str, tools_only: bool, mcp_only: bool, snippet: int
 
 # ── raw commands ─────────────────────────────────────────────────────────────
 
-SOURCE_CHOICES = ["slack", "incident", "decision", "note", "meeting", "support"]
+SOURCE_CHOICES = [
+    "slack", "incident", "decision", "note", "meeting", "support",
+    "checkpoint", "commits",
+]
 
 
 @main.group("raw")
@@ -202,24 +205,31 @@ def raw_add(ctx: click.Context, source: str, title: str, captured_by: str | None
         else:
             console.print("[dim][Tier 1] no-fire[/dim]")
 
-    # Tier 2 synthesis (runs before push so both commits land in one push)
+    # Tier 2 synthesis — inline or async depending on worker.mode in .compost.yml
     synth_result = None
     if decision and decision.fired and not no_synth:
-        console.print("[dim][Tier 2] synthesizing...[/dim]")
-        try:
-            from compost.synth.agent import synthesize
-            from compost.synth.diff_writer import apply_diffs, commit_diffs
-            synth_result = synthesize(raw_file.path, repo)
-            if synth_result.wiki_diffs:
-                written = apply_diffs(repo, synth_result)
-                commit_diffs(repo, written, synth_result.run_id)
-                names = ", ".join(str(d.rel_path) for d in synth_result.wiki_diffs)
-                console.print(f"[green][Tier 2][/green] {len(synth_result.wiki_diffs)} wiki page(s) updated: {names}")
-            else:
-                console.print("[dim][Tier 2] no wiki edits proposed[/dim]")
-        except Exception as exc:
-            console.print(f"[dim]⚠ synthesis failed: {exc}[/dim]")
-            synth_result = None
+        from compost.worker.worker import worker_mode
+        mode = worker_mode(repo)
+        if mode == "async":
+            from compost.worker.queue import enqueue as _enqueue
+            _enqueue(repo, str(raw_file.rel_path), branch, source="cli")
+            console.print("[dim][Tier 2] queued for async worker[/dim]")
+        else:
+            console.print("[dim][Tier 2] synthesizing...[/dim]")
+            try:
+                from compost.synth.agent import synthesize
+                from compost.synth.diff_writer import apply_diffs, commit_diffs
+                synth_result = synthesize(raw_file.path, repo)
+                if synth_result.wiki_diffs:
+                    written = apply_diffs(repo, synth_result)
+                    commit_diffs(repo, written, synth_result.run_id)
+                    names = ", ".join(str(d.rel_path) for d in synth_result.wiki_diffs)
+                    console.print(f"[green][Tier 2][/green] {len(synth_result.wiki_diffs)} wiki page(s) updated: {names}")
+                else:
+                    console.print("[dim][Tier 2] no wiki edits proposed[/dim]")
+            except Exception as exc:
+                console.print(f"[dim]⚠ synthesis failed: {exc}[/dim]")
+                synth_result = None
 
     if assay and synth_result and synth_result.wiki_diffs:
         console.print("[dim][Assay] running round-trip validation...[/dim]")
@@ -722,6 +732,312 @@ def checks_run(ctx: click.Context, branch: str | None, raw_rel: str | None) -> N
         sys.exit(1)
 
 
+# ── worker commands ───────────────────────────────────────────────────────────
+
+
+@main.group("worker")
+def worker_group() -> None:
+    """Async synthesis worker: drains the on-disk job queue."""
+
+
+@worker_group.command("up")
+@click.pass_context
+def worker_up(ctx: click.Context) -> None:
+    """Start the synthesis worker (blocking; Ctrl-C to stop)."""
+    from compost.worker.worker import run_worker, load_worker_config
+
+    repo = ctx.obj["repo"] or find_repo_root(Path.cwd())
+    if repo is None:
+        console.print("[red]No .compost.yml found.[/red]")
+        sys.exit(1)
+
+    config = load_worker_config(repo)
+    console.print(
+        f"[dim]worker up — poll every {config.poll_interval_s}s, "
+        f"max retries {config.max_retries}[/dim]"
+    )
+    run_worker(repo, config)
+
+
+@worker_group.command("status")
+@click.pass_context
+def worker_status(ctx: click.Context) -> None:
+    """Print queue depths (inbox / processing / done / dead)."""
+    from compost.worker.queue import _inbox, _processing, _done, _dead
+
+    repo = ctx.obj["repo"] or find_repo_root(Path.cwd())
+    if repo is None:
+        console.print("[red]No .compost.yml found.[/red]")
+        sys.exit(1)
+
+    table = Table(show_header=True, box=None, padding=(0, 2))
+    table.add_column("Queue")
+    table.add_column("Count", justify="right")
+    for name, fn in (("inbox", _inbox), ("processing", _processing),
+                     ("done", _done), ("dead", _dead)):
+        d = fn(repo)
+        count = len(list(d.glob("*.json"))) if d.exists() else 0
+        table.add_row(name, str(count))
+    console.print(table)
+
+
+@worker_group.command("retry")
+@click.option("--job-id", required=True, help="Job ID (hex) to move from dead/ back to inbox/.")
+@click.pass_context
+def worker_retry(ctx: click.Context, job_id: str) -> None:
+    """Move a dead-letter job back to inbox/ for reprocessing."""
+    import json as _json
+    from compost.worker.queue import _dead, _inbox
+
+    repo = ctx.obj["repo"] or find_repo_root(Path.cwd())
+    if repo is None:
+        console.print("[red]No .compost.yml found.[/red]")
+        sys.exit(1)
+
+    dead = _dead(repo)
+    matches = list(dead.glob(f"*{job_id}*.json"))
+    if not matches:
+        console.print(f"[red]No dead-letter job matching '{job_id}'[/red]")
+        sys.exit(1)
+    if len(matches) > 1:
+        console.print(f"[red]Ambiguous job ID — {len(matches)} matches[/red]")
+        sys.exit(1)
+
+    import os as _os
+    src = matches[0]
+    data = _json.loads(src.read_text())
+    data["retry_count"] = 0
+    data["next_retry_at"] = None
+    data["last_error"] = None
+    _inbox(repo).mkdir(parents=True, exist_ok=True)
+    dest = _inbox(repo) / src.name
+    dest.write_text(_json.dumps(data))
+    _os.rename(src, dest)
+    console.print(f"[green]✓[/green] job {job_id[:8]} moved to inbox")
+
+
+# ── shims commands ────────────────────────────────────────────────────────────
+
+
+@main.group("shims")
+def shims_group() -> None:
+    """Manage local ingestion shims (Slack, Entire, GitHub webhook)."""
+
+
+@shims_group.command("up")
+@click.pass_context
+def shims_up(ctx: click.Context) -> None:
+    """Start all configured shims (blocking; Ctrl-C to stop)."""
+    from compost.shims.supervisor import load_shims_config, start_shims
+
+    repo = ctx.obj["repo"] or find_repo_root(Path.cwd())
+    if repo is None:
+        console.print("[red]No .compost.yml found.[/red]")
+        sys.exit(1)
+
+    config = load_shims_config(repo)
+    console.print(
+        f"[dim]shims up — slack :{config.slack_port}, "
+        f"gh_webhook :{config.gh_webhook_port}[/dim]"
+    )
+    start_shims(repo, config)
+
+
+@shims_group.command("down")
+@click.pass_context
+def shims_down(ctx: click.Context) -> None:
+    """Send SIGTERM to running shims (reads PID files)."""
+    from compost.shims.supervisor import stop_shims
+
+    repo = ctx.obj["repo"] or find_repo_root(Path.cwd())
+    if repo is None:
+        console.print("[red]No .compost.yml found.[/red]")
+        sys.exit(1)
+
+    stop_shims(repo)
+    console.print("[green]✓[/green] shims stopped")
+
+
+@shims_group.command("status")
+@click.pass_context
+def shims_status(ctx: click.Context) -> None:
+    """Print per-shim PID and status."""
+    import os as _os
+
+    repo = ctx.obj["repo"] or find_repo_root(Path.cwd())
+    if repo is None:
+        console.print("[red]No .compost.yml found.[/red]")
+        sys.exit(1)
+
+    pid_dir = repo / ".compost" / "shims"
+    table = Table(show_header=True, box=None, padding=(0, 2))
+    table.add_column("Shim")
+    table.add_column("PID")
+    table.add_column("Status")
+    for name in ("slack_shim", "gh_webhook"):
+        pid_file = pid_dir / f"{name}.pid"
+        if pid_file.exists():
+            pid = pid_file.read_text().strip()
+            try:
+                _os.kill(int(pid), 0)
+                status = "[green]running[/green]"
+            except ProcessLookupError:
+                status = "[red]dead (stale PID)[/red]"
+        else:
+            pid = "—"
+            status = "[dim]stopped[/dim]"
+        table.add_row(name, pid, status)
+    console.print(table)
+
+
+# ── slack commands ────────────────────────────────────────────────────────────
+
+
+@main.group("slack")
+def slack_group() -> None:
+    """Slack shim helpers."""
+
+
+@slack_group.command("fake-react")
+@click.option("--channel", required=True)
+@click.option("--ts", "thread_ts", required=True, help="Slack message timestamp.")
+@click.option("--text", required=True, help="Message body.")
+@click.option("--emoji", default="wiki", show_default=True)
+@click.option("--user", default="cli-test-user", show_default=True)
+@click.pass_context
+def slack_fake_react(ctx: click.Context, channel: str, thread_ts: str,
+                     text: str, emoji: str, user: str) -> None:
+    """POST a fake Slack reaction event to the running slack_shim."""
+    import httpx
+    from compost.shims.supervisor import load_shims_config
+
+    repo = ctx.obj["repo"] or find_repo_root(Path.cwd())
+    if repo is None:
+        console.print("[red]No .compost.yml found.[/red]")
+        sys.exit(1)
+
+    config = load_shims_config(repo)
+    url = f"http://localhost:{config.slack_port}/events"
+    payload = {
+        "channel": channel,
+        "thread_ts": thread_ts,
+        "emoji": emoji,
+        "text": text,
+        "user": user,
+    }
+    try:
+        resp = httpx.post(url, json=payload, timeout=5)
+        console.print(f"[green]✓[/green] {resp.status_code} {resp.json()}")
+    except httpx.ConnectError:
+        console.print(f"[red]Could not connect to slack_shim at {url}[/red]")
+        console.print("Is [bold]compost shims up[/bold] running?")
+        sys.exit(1)
+
+
+# ── entire commands ───────────────────────────────────────────────────────────
+
+
+@main.group("entire")
+def entire_group() -> None:
+    """Entire shim helpers."""
+
+
+@entire_group.command("seed")
+@click.option("--repo", "source_repo", required=True,
+              type=click.Path(resolve_path=True, path_type=Path),
+              help="Local git repo to read the commit from.")
+@click.option("--sha", required=True, help="Commit SHA to materialize.")
+@click.option("--path", "path_filter", default="",
+              help="Only materialize if commit touches this path prefix.")
+@click.pass_context
+def entire_seed(ctx: click.Context, source_repo: Path, sha: str, path_filter: str) -> None:
+    """Materialize one commit as a checkpoint raw file (no watcher needed)."""
+    import subprocess as _subprocess
+    from compost.shims.entire_shim import WatchTarget, materialize_commit
+    from compost.worker.queue import enqueue as _enqueue
+
+    repo = ctx.obj["repo"] or find_repo_root(Path.cwd())
+    if repo is None:
+        console.print("[red]No .compost.yml found.[/red]")
+        sys.exit(1)
+
+    msg_result = _subprocess.run(
+        ["git", "log", "-1", "--format=%s", sha],
+        cwd=source_repo, capture_output=True, text=True, check=True,
+    )
+    message = msg_result.stdout.strip()
+
+    files_result = _subprocess.run(
+        ["git", "diff-tree", "--no-commit-id", "-r", "--name-only", sha],
+        cwd=source_repo, capture_output=True, text=True, check=True,
+    )
+    changed_files = [f for f in files_result.stdout.splitlines() if f]
+
+    target = WatchTarget(repo=source_repo, path_filter=path_filter)
+    raw_path = materialize_commit(
+        compost_repo=repo,
+        source_repo=source_repo,
+        sha=sha,
+        message=message,
+        changed_files=changed_files,
+        target=target,
+    )
+    if raw_path is None:
+        console.print(f"[dim]filtered out (path_filter={path_filter!r} not matched)[/dim]")
+        return
+
+    rel = raw_path.relative_to(repo)
+    job = _enqueue(repo, str(rel), branch=f"shim/entire/{sha[:8]}", source="entire_shim")
+    console.print(f"[green]✓[/green] {rel}")
+    console.print(f"job: {job.id[:8]}")
+
+
+# ── gh commands ───────────────────────────────────────────────────────────────
+
+
+@main.group("gh")
+def gh_group() -> None:
+    """GitHub webhook shim helpers."""
+
+
+@gh_group.command("fake-pr")
+@click.option("--branch", required=True, help="PR source branch.")
+@click.option("--action", default="opened", show_default=True,
+              type=click.Choice(["opened", "labeled", "synchronize"]))
+@click.option("--pr-number", default=1, type=int, show_default=True)
+@click.option("--repo-name", default="", help="GitHub repo full name (e.g. acme/payments).")
+@click.option("--labels", default="compost/synth", show_default=True,
+              help="Comma-separated labels.")
+@click.pass_context
+def gh_fake_pr(ctx: click.Context, branch: str, action: str,
+               pr_number: int, repo_name: str, labels: str) -> None:
+    """POST a fake GitHub PR event to the running gh_webhook_shim."""
+    import httpx
+    from compost.shims.supervisor import load_shims_config
+
+    repo = ctx.obj["repo"] or find_repo_root(Path.cwd())
+    if repo is None:
+        console.print("[red]No .compost.yml found.[/red]")
+        sys.exit(1)
+
+    config = load_shims_config(repo)
+    url = f"http://localhost:{config.gh_webhook_port}/webhook"
+    payload = {
+        "action": action,
+        "pr_number": pr_number,
+        "branch": branch,
+        "labels": [lb.strip() for lb in labels.split(",")],
+        "repo_full_name": repo_name,
+    }
+    try:
+        resp = httpx.post(url, json=payload, timeout=5)
+        console.print(f"[green]✓[/green] {resp.status_code} {resp.json()}")
+    except httpx.ConnectError:
+        console.print(f"[red]Could not connect to gh_webhook_shim at {url}[/red]")
+        console.print("Is [bold]compost shims up[/bold] running?")
+        sys.exit(1)
+
+
 # ── gitea commands ────────────────────────────────────────────────────────────
 
 
@@ -863,7 +1179,10 @@ def _run_doctor_checks(repo: Path) -> list[tuple[str, bool, str]]:
                    "missing or empty .github/CODEOWNERS"))
 
     gitignore = repo / ".gitignore"
-    _REQUIRED_IGNORES = {".compost/codify/", ".compost/synth-log/", ".compost/checks/"}
+    _REQUIRED_IGNORES = {
+        ".compost/codify/", ".compost/synth-log/", ".compost/checks/",
+        ".compost/queue/", ".compost/shims/",
+    }
     if gitignore.exists():
         ignored = set(gitignore.read_text().splitlines())
         missing_ignores = _REQUIRED_IGNORES - ignored

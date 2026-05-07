@@ -10,6 +10,7 @@ console = Console()
 
 _DIRECTORIES = [
     "raw/checkpoints",
+    "raw/commits",
     "raw/slack",
     "raw/incidents",
     "raw/decisions",
@@ -51,7 +52,11 @@ def bootstrap_repo(path: Path, name: str) -> None:
         ".compost/synth-log/\n"
         ".compost/assay-report.md\n"
         ".compost/checks/\n"
+        ".compost/queue/\n"
+        ".compost/shims/\n"
     )
+
+    _create_queue_dirs(path)
 
     codeowners = (
         "# CODEOWNERS for wiki content.\n"
@@ -84,6 +89,12 @@ def bootstrap_repo(path: Path, name: str) -> None:
     console.print(f"  name:      {name}")
     console.print(f"  qmd index: {name}")
     console.print(f"\nNext: add seed wiki pages, then run [bold]tc doctor[/bold].")
+
+
+def _create_queue_dirs(repo: Path) -> None:
+    for d in ("inbox", "processing", "done", "dead"):
+        (repo / ".compost" / "queue" / d).mkdir(parents=True, exist_ok=True)
+    (repo / ".compost" / "shims").mkdir(parents=True, exist_ok=True)
 
 
 def _init_wiki_index(path: Path) -> None:

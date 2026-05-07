@@ -8,7 +8,10 @@ from typing import Literal
 
 import yaml
 
-SOURCE_TYPES = Literal["slack", "incident", "decision", "note", "meeting", "support"]
+SOURCE_TYPES = Literal[
+    "slack", "incident", "decision", "note", "meeting", "support",
+    "checkpoint", "commits",
+]
 
 
 @dataclass(frozen=True)
@@ -82,4 +85,8 @@ def _resolve_path(source: str, slug: str, *, channel: str, ts: datetime) -> Path
         return Path(f"raw/meetings/{date}-{slug}.md")
     if source == "support":
         return Path(f"raw/support/{date}-{slug}.md")
+    if source == "checkpoint":
+        return Path(f"raw/checkpoints/{yyyy}/{mm}/{dd}/{slug}.md")
+    if source == "commits":
+        return Path(f"raw/commits/{yyyy}/{mm}/{dd}/{slug}.md")
     raise ValueError(f"Unknown source type: {source}")

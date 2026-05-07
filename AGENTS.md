@@ -79,6 +79,44 @@ Do not edit it directly. Schema changes (adding a new wiki page type) require up
 No Python or compost code changes required.
 
 
+## Verify CLI examples against --help before closing a plan
+
+CLI option names in documentation and README examples must match the actual `@click.option`
+declarations. After implementation, spot-check every documented flag with `compost <cmd> --help`
+before marking a plan complete. Flags whose Python param name differs from the CLI name (e.g.
+`@click.option("--ts", "thread_ts", ...)`) are the most common source of mismatch.
+
+---
+
+## Config fields that are plumbed but not yet applied
+
+When a config field is wired through a dataclass and `.compost.yml` loading but not yet applied
+in the underlying logic, mark it with a `# TODO: not yet applied` comment at the use site. Do
+not leave it silently passing through to a function that ignores it — that misleads users who set
+the config and see no effect. If a field must be deferred, list it explicitly in the
+"Dropped / deferred" section of the impl plan.
+
+---
+
+## Worker and shim test isolation
+
+Worker and shim tests run against a real on-disk queue and real git repos; there are no mocks of
+the file system or queue state. Use the `compost_git_repo_with_queue` fixture (defined in
+`tests/conftest.py`) for any test that exercises `enqueue`, `claim_next`, `complete`,
+`dead_letter`, or `requeue_stuck`. This fixture creates a bootstrapped repo with queue directories
+already present.
+
+Shim FastAPI tests use `fastapi.testclient.TestClient` against `make_app(repo, ...)` directly.
+They never spin up a real uvicorn process. The module-level `app` variable (used by uvicorn in
+production) is guarded by `os.environ.get("COMPOST_REPO")` to prevent it from being instantiated
+at import time during tests.
+
+The `[shims]` optional extra (`fastapi`, `uvicorn`) is declared in `pyproject.toml`. `fastapi` is
+also listed under `[dev]` so that `just test` (which installs dev extras) always has it available
+without requiring `pip install "compost[shims]"`.
+
+---
+
 ## Adversarial Checks
 
 `compost pr merge` now runs Tier 2.5 adversarial checks before merging any branch. The check

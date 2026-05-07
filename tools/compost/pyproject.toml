@@ -20,7 +20,8 @@ dependencies = [
 compost = "compost.cli:main"
 
 [project.optional-dependencies]
-dev = ["pytest>=8.0", "pytest-asyncio>=0.23"]
+dev = ["pytest>=8.0", "pytest-asyncio>=0.23", "fastapi>=0.110"]
+shims = ["fastapi>=0.110", "uvicorn[standard]>=0.27"]
 
 [tool.setuptools]
 package-dir = {"" = ".."}
@@ -33,6 +34,8 @@ packages = [
     "compost.synth",
     "compost.codify",
     "compost.checks",
+    "compost.shims",
+    "compost.worker",
 ]
 
 [tool.setuptools.package-data]
