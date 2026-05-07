@@ -1,0 +1,84 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "de488102e4b1",
+  "session_id": "5abb02fd-3e95-4416-8d77-017fe421fb81",
+  "strategy": "manual-commit",
+  "created_at": "2026-05-07T20:48:14.942474Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "AGENTS.md",
+    "_plans/2026-05-05-1540-phase7-8-shims-worker-high-level.md",
+    "_plans/2026-05-05-1605-phase7-8-shims-worker-impl.md",
+    "tools/compost/README.md",
+    "tools/compost/bootstrap.py",
+    "tools/compost/cli.py",
+    "tools/compost/ingest/git.py",
+    "tools/compost/ingest/raw.py",
+    "tools/compost/pyproject.toml",
+    "tools/compost/tests/conftest.py",
+    "tools/compost/uv.lock"
+  ],
+  "agent": "Claude Code",
+  "model": "",
+  "turn_id": "62b1738971b1",
+  "token_usage": {
+    "input_tokens": 10,
+    "cache_creation_tokens": 23085,
+    "cache_read_tokens": 66575,
+    "output_tokens": 646,
+    "api_call_count": 4
+  },
+  "session_metrics": {
+    "turn_count": 1
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-05-07T20:48:14.939873Z",
+    "agent_lines": 0,
+    "agent_removed": 0,
+    "human_added": 1333,
+    "human_modified": 25,
+    "human_removed": 0,
+    "total_committed": 1333,
+    "total_lines_changed": 1358,
+    "agent_percentage": 0,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 4427,
+      "user_lines_removed": 24,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "AGENTS.md": 38,
+        "_plans/2026-05-05-1540-phase7-8-shims-worker-high-level.md": 410,
+        "_plans/2026-05-05-1605-phase7-8-shims-worker-impl.md": 1884,
+        "tools/compost/README.md": 98,
+        "tools/compost/bootstrap.py": 11,
+        "tools/compost/cli.py": 337,
+        "tools/compost/ingest/git.py": 6,
+        "tools/compost/ingest/raw.py": 8,
+        "tools/compost/pyproject.toml": 4,
+        "tools/compost/shims/entire_shim.py": 164,
+        "tools/compost/shims/gh_webhook_shim.py": 67,
+        "tools/compost/shims/slack_shim.py": 65,
+        "tools/compost/shims/supervisor.py": 153,
+        "tools/compost/tests/conftest.py": 12,
+        "tools/compost/tests/test_shims.py": 245,
+        "tools/compost/tests/test_worker.py": 330,
+        "tools/compost/uv.lock": 265,
+        "tools/compost/worker/queue.py": 146,
+        "tools/compost/worker/worker.py": 184
+      },
+      "user_removed_per_file": {
+        "tools/compost/cli.py": 18,
+        "tools/compost/ingest/git.py": 3,
+        "tools/compost/ingest/raw.py": 1,
+        "tools/compost/pyproject.toml": 1,
+        "tools/compost/uv.lock": 1
+      }
+    }
+  ]
+}
