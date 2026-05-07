@@ -1,0 +1,1 @@
+should the untracked `.compost/` directories in `/Users/eoin/local-test/team-context-test` be added to gitignore?
