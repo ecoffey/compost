@@ -27,6 +27,7 @@ shims = ["fastapi>=0.110", "uvicorn[standard]>=0.27"]
 package-dir = {"" = ".."}
 packages = [
     "compost",
+    "compost.cli",
     "compost.gitea",
     "compost.model",
     "compost.mcp",
