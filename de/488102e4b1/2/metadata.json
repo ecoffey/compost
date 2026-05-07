@@ -1,0 +1,147 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "de488102e4b1",
+  "session_id": "73adbe81-dd6c-451c-82ed-5fa80e8abcf9",
+  "strategy": "manual-commit",
+  "created_at": "2026-05-07T20:48:15.612611Z",
+  "branch": "main",
+  "checkpoints_count": 12,
+  "files_touched": [
+    "AGENTS.md",
+    "_plans/2026-05-05-1540-phase7-8-shims-worker-high-level.md",
+    "_plans/2026-05-05-1605-phase7-8-shims-worker-impl.md",
+    "tools/compost/README.md",
+    "tools/compost/bootstrap.py",
+    "tools/compost/cli.py",
+    "tools/compost/ingest/git.py",
+    "tools/compost/ingest/raw.py",
+    "tools/compost/pyproject.toml",
+    "tools/compost/shims/__init__.py",
+    "tools/compost/shims/entire_shim.py",
+    "tools/compost/shims/gh_webhook_shim.py",
+    "tools/compost/shims/slack_shim.py",
+    "tools/compost/shims/supervisor.py",
+    "tools/compost/tests/conftest.py",
+    "tools/compost/tests/test_shims.py",
+    "tools/compost/tests/test_worker.py",
+    "tools/compost/uv.lock",
+    "tools/compost/worker/__init__.py",
+    "tools/compost/worker/queue.py",
+    "tools/compost/worker/worker.py"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-sonnet-4-6",
+  "turn_id": "b07a74099164",
+  "token_usage": {
+    "input_tokens": 727,
+    "cache_creation_tokens": 502073,
+    "cache_read_tokens": 20584318,
+    "output_tokens": 137763,
+    "api_call_count": 193
+  },
+  "session_metrics": {
+    "turn_count": 12
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-05-07T20:48:15.560766Z",
+    "agent_lines": 1798,
+    "agent_removed": 24,
+    "human_added": 1357,
+    "human_modified": 1,
+    "human_removed": 0,
+    "total_committed": 3156,
+    "total_lines_changed": 3180,
+    "agent_percentage": 57.295597484276726,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 2294,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "_plans/2026-05-05-1540-phase7-8-shims-worker-high-level.md": 410,
+        "_plans/2026-05-05-1605-phase7-8-shims-worker-impl.md": 1884
+      }
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 4200,
+      "agent_lines_removed": 21
+    },
+    {
+      "checkpoint_number": 3,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 4229,
+      "agent_lines_removed": 21
+    },
+    {
+      "checkpoint_number": 4,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 4236,
+      "agent_lines_removed": 21
+    },
+    {
+      "checkpoint_number": 5,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 4241,
+      "agent_lines_removed": 21
+    },
+    {
+      "checkpoint_number": 6,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 4265,
+      "agent_lines_removed": 22
+    },
+    {
+      "checkpoint_number": 7,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 4269,
+      "agent_lines_removed": 22
+    },
+    {
+      "checkpoint_number": 8,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 4269,
+      "agent_lines_removed": 22
+    },
+    {
+      "checkpoint_number": 9,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 4272,
+      "agent_lines_removed": 22
+    },
+    {
+      "checkpoint_number": 10,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 4272,
+      "agent_lines_removed": 22
+    },
+    {
+      "checkpoint_number": 11,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 4276,
+      "agent_lines_removed": 24
+    },
+    {
+      "checkpoint_number": 12,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 4396,
+      "agent_lines_removed": 24
+    }
+  ]
+}
