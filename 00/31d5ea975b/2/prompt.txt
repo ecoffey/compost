@@ -1,0 +1,10 @@
+<ide_selection>The user selected the lines 64 to 64 from /Users/eoin/workspace/compost/tools/compost/ingest/git.py:
+rel = f.relative_to(repo) if f.is_absolute() else f
+
+This may or may not be related to the current task.</ide_selection>
+we're repeating this line a lot, lets dry it up
+
+---
+
+<ide_opened_file>The user opened the file /Users/eoin/workspace/compost/tools/compost/cli.py in the IDE. This may or may not be related to the current task.</ide_opened_file>
+@tools/compost/cli.py is getting pretty big in terms of line count. can we break out each "sub-command" like "assay", "checks", "synth", etc into their own files?

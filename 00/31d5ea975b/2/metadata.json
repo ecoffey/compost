@@ -1,0 +1,53 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "0031d5ea975b",
+  "session_id": "badc8725-560b-4b91-82bf-6c9aa04938e7",
+  "strategy": "manual-commit",
+  "created_at": "2026-05-07T20:48:42.273784Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "tools/compost/cli/__init__.py",
+    "tools/compost/cli/_helpers.py",
+    "tools/compost/cli/assay.py",
+    "tools/compost/cli/checks.py",
+    "tools/compost/cli/classify.py",
+    "tools/compost/cli/codify.py",
+    "tools/compost/cli/entire.py",
+    "tools/compost/cli/gh.py",
+    "tools/compost/cli/gitea.py",
+    "tools/compost/cli/pr.py",
+    "tools/compost/cli/raw.py",
+    "tools/compost/cli/session.py",
+    "tools/compost/cli/shims.py",
+    "tools/compost/cli/slack.py",
+    "tools/compost/cli/synth.py",
+    "tools/compost/cli/worker.py",
+    "tools/compost/pyproject.toml"
+  ],
+  "agent": "Claude Code",
+  "model": "",
+  "turn_id": "888d657a35ec",
+  "token_usage": {
+    "input_tokens": 43,
+    "cache_creation_tokens": 59940,
+    "cache_read_tokens": 1956405,
+    "output_tokens": 26550,
+    "api_call_count": 39
+  },
+  "session_metrics": {
+    "turn_count": 2
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-05-07T20:48:42.26543Z",
+    "agent_lines": 1499,
+    "agent_removed": 0,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 1499,
+    "total_lines_changed": 2857,
+    "agent_percentage": 52.46762338116906,
+    "metric_version": 2
+  }
+}

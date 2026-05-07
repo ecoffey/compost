@@ -3,8 +3,24 @@
   "checkpoint_id": "0031d5ea975b",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 1,
+  "checkpoints_count": 2,
   "files_touched": [
+    "tools/compost/cli/__init__.py",
+    "tools/compost/cli/_helpers.py",
+    "tools/compost/cli/assay.py",
+    "tools/compost/cli/checks.py",
+    "tools/compost/cli/classify.py",
+    "tools/compost/cli/codify.py",
+    "tools/compost/cli/entire.py",
+    "tools/compost/cli/gh.py",
+    "tools/compost/cli/gitea.py",
+    "tools/compost/cli/pr.py",
+    "tools/compost/cli/raw.py",
+    "tools/compost/cli/session.py",
+    "tools/compost/cli/shims.py",
+    "tools/compost/cli/slack.py",
+    "tools/compost/cli/synth.py",
+    "tools/compost/cli/worker.py",
     "tools/compost/pyproject.toml"
   ],
   "sessions": [
@@ -19,13 +35,19 @@
       "transcript": "/00/31d5ea975b/1/full.jsonl",
       "content_hash": "/00/31d5ea975b/1/content_hash.txt",
       "prompt": "/00/31d5ea975b/1/prompt.txt"
+    },
+    {
+      "metadata": "/00/31d5ea975b/2/metadata.json",
+      "transcript": "/00/31d5ea975b/2/full.jsonl",
+      "content_hash": "/00/31d5ea975b/2/content_hash.txt",
+      "prompt": "/00/31d5ea975b/2/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 10,
-    "cache_creation_tokens": 23085,
-    "cache_read_tokens": 66575,
-    "output_tokens": 646,
-    "api_call_count": 4
+    "input_tokens": 53,
+    "cache_creation_tokens": 83025,
+    "cache_read_tokens": 2022980,
+    "output_tokens": 27196,
+    "api_call_count": 43
   }
 }
