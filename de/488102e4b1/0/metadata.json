@@ -1,0 +1,54 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "de488102e4b1",
+  "session_id": "4019e58c-e4a6-48fa-b49c-d13a07b2361e",
+  "strategy": "manual-commit",
+  "created_at": "2026-05-07T20:48:14.906644Z",
+  "branch": "main",
+  "checkpoints_count": 3,
+  "files_touched": [
+    "_plans/2026-05-05-1540-phase7-8-shims-worker-high-level.md",
+    "_plans/2026-05-05-1605-phase7-8-shims-worker-impl.md"
+  ],
+  "agent": "Claude Code",
+  "model": "",
+  "turn_id": "164266faa72a",
+  "token_usage": {
+    "input_tokens": 536,
+    "cache_creation_tokens": 118429,
+    "cache_read_tokens": 2188259,
+    "output_tokens": 41224,
+    "api_call_count": 34
+  },
+  "session_metrics": {
+    "turn_count": 5
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-05-07T20:48:14.887593Z",
+    "agent_lines": 2294,
+    "agent_removed": 0,
+    "human_added": 2097,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 4391,
+    "total_lines_changed": 4415,
+    "agent_percentage": 51.959229898074746,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 398,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 3,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 410,
+      "agent_lines_removed": 0
+    }
+  ]
+}
