@@ -3,7 +3,7 @@
   "checkpoint_id": "de488102e4b1",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 16,
+  "checkpoints_count": 18,
   "files_touched": [
     "AGENTS.md",
     "_plans/2026-05-05-1540-phase7-8-shims-worker-high-level.md",
@@ -45,13 +45,19 @@
       "transcript": "/de/488102e4b1/2/full.jsonl",
       "content_hash": "/de/488102e4b1/2/content_hash.txt",
       "prompt": "/de/488102e4b1/2/prompt.txt"
+    },
+    {
+      "metadata": "/de/488102e4b1/3/metadata.json",
+      "transcript": "/de/488102e4b1/3/full.jsonl",
+      "content_hash": "/de/488102e4b1/3/content_hash.txt",
+      "prompt": "/de/488102e4b1/3/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 1273,
-    "cache_creation_tokens": 643587,
-    "cache_read_tokens": 22839152,
-    "output_tokens": 179633,
-    "api_call_count": 231
+    "input_tokens": 1316,
+    "cache_creation_tokens": 703527,
+    "cache_read_tokens": 24795557,
+    "output_tokens": 206183,
+    "api_call_count": 270
   }
 }
