@@ -1,0 +1,33 @@
+/plan @_plans/2026-04-23-2149-laptop-steel-thread-high-level.md lets do Phase 9, and consult @_plans/backlog.md for any relevant items
+
+---
+
+/process-feedback
+
+---
+
+<ide_opened_file>The user opened the file /Users/eoin/workspace/compost/_plans/2026-05-07-2125-phase9-lifecycle-lint-impl.md in the IDE. This may or may not be related to the current task.</ide_opened_file>
+yeah add that memory entry
+
+---
+
+/implement
+
+---
+
+/implement
+
+---
+
+<ide_opened_file>The user opened the file /Users/eoin/workspace/compost/_plans/2026-05-07-2125-phase9-lifecycle-lint-impl.md in the IDE. This may or may not be related to the current task.</ide_opened_file>
+1: yes I'd like to understand what it would take to have a test for this
+2: do nothing
+3: yeah update the plan just for posterity
+
+---
+
+why do you keep using `sed` instead of `Read`?
+
+---
+
+yeah lets go for it

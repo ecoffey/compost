@@ -1,0 +1,109 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "7db613180208",
+  "session_id": "f778c707-e612-49aa-9997-38d8969bfe6f",
+  "strategy": "manual-commit",
+  "created_at": "2026-05-08T17:38:47.260696Z",
+  "branch": "main",
+  "checkpoints_count": 7,
+  "files_touched": [
+    "_plans/2026-05-07-2125-phase9-lifecycle-lint-impl.md",
+    "_plans/2026-05-07-2308-phase9-lifecycle-lint-impl.md",
+    "tools/compost/bootstrap.py",
+    "tools/compost/cli/__init__.py",
+    "tools/compost/cli/_helpers.py",
+    "tools/compost/cli/lint.py",
+    "tools/compost/ingest/classifier.py",
+    "tools/compost/lint/__init__.py",
+    "tools/compost/lint/linters/__init__.py",
+    "tools/compost/lint/linters/confidence_mismatch.py",
+    "tools/compost/lint/linters/expired_research.py",
+    "tools/compost/lint/linters/false_negative_sampler.py",
+    "tools/compost/lint/linters/missing_owners.py",
+    "tools/compost/lint/linters/orphaned_raw.py",
+    "tools/compost/lint/linters/stale_citations.py",
+    "tools/compost/lint/report.py",
+    "tools/compost/lint/runner.py",
+    "tools/compost/tests/conftest.py",
+    "tools/compost/tests/test_lint.py"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-sonnet-4-6",
+  "turn_id": "d255c90a8128",
+  "token_usage": {
+    "input_tokens": 126,
+    "cache_creation_tokens": 292367,
+    "cache_read_tokens": 10036747,
+    "output_tokens": 74799,
+    "api_call_count": 108
+  },
+  "session_metrics": {
+    "turn_count": 7
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-05-08T17:38:47.231783Z",
+    "agent_lines": 3097,
+    "agent_removed": 1,
+    "human_added": 1,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 3098,
+    "total_lines_changed": 3099,
+    "agent_percentage": 99.9677315262988,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 1,
+      "user_lines_removed": 0,
+      "agent_lines_added": 378,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "_plans/2026-05-07-2125-phase9-lifecycle-lint-impl.md": 1
+      }
+    },
+    {
+      "checkpoint_number": 3,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 389,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 4,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 389,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 5,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 1756,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 6,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 3056,
+      "agent_lines_removed": 1
+    },
+    {
+      "checkpoint_number": 7,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 3056,
+      "agent_lines_removed": 1
+    }
+  ]
+}
