@@ -20,6 +20,7 @@ from compost.cli.slack import slack_group
 from compost.cli.entire import entire_group
 from compost.cli.gh import gh_group
 from compost.cli.gitea import gitea_group
+from compost.cli.lint import lint_group
 
 
 @click.group()
@@ -86,3 +87,4 @@ main.add_command(slack_group)
 main.add_command(entire_group)
 main.add_command(gh_group)
 main.add_command(gitea_group)
+main.add_command(lint_group)

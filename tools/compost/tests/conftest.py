@@ -44,6 +44,7 @@ def _write_gitignore(repo: Path) -> None:
         ".compost/checks/\n"
         ".compost/queue/\n"
         ".compost/shims/\n"
+        ".compost/lint-log/\n"
     )
 
 

@@ -63,7 +63,7 @@ def _run_doctor_checks(repo: Path) -> list[tuple[str, bool, str]]:
     gitignore = repo / ".gitignore"
     _REQUIRED_IGNORES = {
         ".compost/codify/", ".compost/synth-log/", ".compost/checks/",
-        ".compost/queue/", ".compost/shims/",
+        ".compost/queue/", ".compost/shims/", ".compost/lint-log/",
     }
     if gitignore.exists():
         ignored = set(gitignore.read_text().splitlines())

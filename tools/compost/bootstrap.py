@@ -54,6 +54,7 @@ def bootstrap_repo(path: Path, name: str) -> None:
         ".compost/checks/\n"
         ".compost/queue/\n"
         ".compost/shims/\n"
+        ".compost/lint-log/\n"
     )
 
     _create_queue_dirs(path)

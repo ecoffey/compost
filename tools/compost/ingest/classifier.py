@@ -183,3 +183,35 @@ def _source_of(f: Path) -> str:
         return fm.get("source", "")
     except Exception:
         return ""
+
+
+def replay_classify(
+    repo: Path,
+    since_days: int,
+) -> list[tuple[Path, ClassifyDecision]]:
+    """Classify all raw/*.md files modified within since_days. Pure; does not log.
+
+    Returns list of (absolute_path, ClassifyDecision) sorted newest-first by mtime.
+    """
+    from datetime import datetime, timedelta, timezone
+
+    raw_dir = repo / "raw"
+    if not raw_dir.exists():
+        return []
+
+    cutoff_ts = (datetime.now(timezone.utc) - timedelta(days=since_days)).timestamp()
+    files = sorted(
+        (f for f in raw_dir.rglob("*.md") if f.stat().st_mtime >= cutoff_ts),
+        key=lambda f: f.stat().st_mtime,
+        reverse=True,
+    )
+
+    rules = load_rules(repo)
+    results: list[tuple[Path, ClassifyDecision]] = []
+    for f in files:
+        try:
+            decision = classify(f, repo, rules=rules)
+            results.append((f, decision))
+        except Exception:
+            continue
+    return results
