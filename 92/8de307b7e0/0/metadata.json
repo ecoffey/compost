@@ -1,0 +1,93 @@
+{
+  "cli_version": "0.5.6",
+  "checkpoint_id": "928de307b7e0",
+  "session_id": "93a3ba6f-ea58-42f2-9fe7-a3d15c01e8fa",
+  "strategy": "manual-commit",
+  "created_at": "2026-05-23T16:59:21.31126Z",
+  "branch": "main",
+  "checkpoints_count": 6,
+  "files_touched": [
+    "_plans/2026-05-11-1200-phase10-federation-impl.md",
+    "tools/compost/cli/__init__.py",
+    "tools/compost/cli/federation.py",
+    "tools/compost/mcp/federation.py",
+    "tools/compost/mcp/server.py",
+    "tools/compost/mcp/tools.py",
+    "tools/compost/model/frontmatter.py",
+    "tools/compost/pyproject.toml",
+    "tools/compost/tests/test_federation.py",
+    "tools/compost/tests/test_frontmatter.py"
+  ],
+  "agent": "Claude Code",
+  "model": "",
+  "turn_id": "617168a50f4c",
+  "token_usage": {
+    "input_tokens": 102,
+    "cache_creation_tokens": 320966,
+    "cache_read_tokens": 6086734,
+    "output_tokens": 43168,
+    "api_call_count": 79
+  },
+  "session_metrics": {
+    "turn_count": 8
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-05-23T16:59:21.292381Z",
+    "agent_lines": 1660,
+    "agent_removed": 2,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 1660,
+    "total_lines_changed": 1662,
+    "agent_percentage": 100,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 321,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "_plans/2026-05-08-1744-phase10-11-federation-derive-high-level.md": 321
+      }
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 1355,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 3,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 1981,
+      "agent_lines_removed": 2
+    },
+    {
+      "checkpoint_number": 4,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 1981,
+      "agent_lines_removed": 2
+    },
+    {
+      "checkpoint_number": 5,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 1981,
+      "agent_lines_removed": 2
+    },
+    {
+      "checkpoint_number": 6,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 1981,
+      "agent_lines_removed": 2
+    }
+  ]
+}
