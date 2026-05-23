@@ -64,6 +64,30 @@ def test_validate_unknown_type() -> None:
     assert any("type" in e and "widget" in e for e in errors)
 
 
+def test_validate_accepts_derivation_fields() -> None:
+    fm = {
+        "type": "service", "name": "payments", "owners": ["alice"],
+        "status": "active", "updated": "2026-01-01", "confidence": "high",
+        "sources": ["raw/decisions/0001.md"],
+        "depends_on": ["auth", "db"],
+        "depended_on_by": ["checkout"],
+        "technology": ["python", "postgres"],
+        "org_registered": True,
+    }
+    errors = validate_frontmatter(fm, Path("wiki/services/payments.md"))
+    assert errors == []
+
+
+def test_validate_derivation_fields_absent_is_valid() -> None:
+    fm = {
+        "type": "service", "name": "payments", "owners": ["alice"],
+        "status": "active", "updated": "2026-01-01", "confidence": "high",
+        "sources": ["raw/decisions/0001.md"],
+    }
+    errors = validate_frontmatter(fm, Path("wiki/services/payments.md"))
+    assert errors == []
+
+
 def test_parse_returns_empty_dict_on_bad_file(tmp_path: Path) -> None:
     f = tmp_path / "bad.md"
     f.write_text("no frontmatter here")

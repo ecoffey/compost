@@ -46,3 +46,6 @@ packages = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = [
+    "integration: requires external processes (qmd binary, network)",
+]

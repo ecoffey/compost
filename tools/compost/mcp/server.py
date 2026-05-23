@@ -7,12 +7,14 @@ from mcp.server import Server
 from mcp.server.stdio import stdio_server
 from mcp.types import TextContent, Tool
 
+from compost.mcp.federation import FederatedRepo, load_federation_config
 from compost.mcp.tools import load_service_context, query_wiki
 from compost.repo import load_repo_config
 
 server = Server("compost")
 
 _active_repo: Path = Path.cwd()
+_federated_repos: list[FederatedRepo] = []
 
 
 def _get_index_name(repo: Path) -> str:
@@ -22,7 +24,7 @@ def _get_index_name(repo: Path) -> str:
 
 @server.list_tools()
 async def list_tools() -> list[Tool]:
-    return [
+    tools = [
         Tool(
             name="load_service_context",
             description=(
@@ -59,6 +61,37 @@ async def list_tools() -> list[Tool]:
         ),
     ]
 
+    if _federated_repos:
+        tools.append(Tool(
+            name="query_across_org",
+            description=(
+                "Fan out a query to all configured repos in the federation. "
+                "Merges and deduplicates results across teams."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string"},
+                    "limit": {"type": "integer", "default": 10},
+                },
+                "required": ["query"],
+            },
+        ))
+        tools.append(Tool(
+            name="find_service_owner",
+            description=(
+                "Look up who owns a service. Checks the engineering services index "
+                "first; falls back to searching team wikis."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {"service": {"type": "string"}},
+                "required": ["service"],
+            },
+        ))
+
+    return tools
+
 
 @server.call_tool()
 async def call_tool(name: str, arguments: dict) -> list[TextContent]:
@@ -74,6 +107,16 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
             scope=arguments.get("scope", "team"),
             limit=arguments.get("limit", 5),
         )
+    elif name == "query_across_org":
+        from compost.mcp.tools import query_across_org
+        result = query_across_org(
+            arguments["query"],
+            _federated_repos,
+            limit=arguments.get("limit", 10),
+        )
+    elif name == "find_service_owner":
+        from compost.mcp.tools import find_service_owner
+        result = find_service_owner(arguments["service"], _federated_repos)
     else:
         result = f"Unknown tool: {name}"
 
@@ -92,9 +135,14 @@ def _warmup(index: str) -> None:
 
 
 async def run_server(repo: Path) -> None:
-    global _active_repo
+    global _active_repo, _federated_repos
     _active_repo = repo
+    _federated_repos = load_federation_config()
+
     _warmup(_get_index_name(repo))
+    for fed_repo in _federated_repos:
+        _warmup(fed_repo.qmd_index)
+
     async with stdio_server() as (read_stream, write_stream):
         await server.run(
             read_stream, write_stream,

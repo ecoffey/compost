@@ -25,6 +25,11 @@ class Frontmatter(TypedDict, total=False):
     related: list[str]
     supersedes: list[str]
     superseded_by: str | None
+    # derivation fields (Phase 10+)
+    depends_on: list[str]
+    depended_on_by: list[str]
+    technology: list[str]
+    org_registered: bool
 
 
 def parse_frontmatter(path: Path) -> tuple[dict, str]:
