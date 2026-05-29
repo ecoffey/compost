@@ -15,17 +15,13 @@ Parking lot for ideas and architectural questions that aren't ready for a phase 
 
 **Related:** `qmd` already has its own MCP server mode (`qmd mcp`, stdio transport). Investigate whether we can use `qmd mcp` directly — either by pointing Claude Code at it instead of `compost mcp`, or by having `compost mcp` talk to a running `qmd mcp` process over a local socket instead of shelling out per query. This would offload model management entirely to qmd and let `compost` focus on the compost routing and tool shaping.
 
-**When to revisit:** Phase 8 (long-running synthesis daemon) is a natural moment — we'll already be building persistent background processes at that point.
+**When to revisit:** Phase 12+. The `_warmup()` call in `run_server` mitigates latency sufficiently for laptop use. Revisit when serving multiple concurrent sessions where per-session warmup becomes measurable.
 
 ---
 
-## Verify: qmd --index per-index isolation
+## ~~Verify: qmd --index per-index isolation~~ DONE (Phase 10)
 
-**Context:** The impl plan flagged this as an open question: are collections registered under `--index tc-test` invisible to the default index and to other named indexes?
-
-If isolation is NOT guaranteed, collection names across different wiki instances could collide. The fallback would be to namespace collection names with the index prefix (e.g. `tc-test/wiki`, `tc-test/raw`) when registering.
-
-**When to revisit:** Before bootstrapping a second wiki instance (Phase 10, or whenever a second local wiki is created for testing).
+Verified by integration tests in `tests/test_federation.py` (`test_fan_out_query_index_isolation`). Isolation is guaranteed — collections registered under one named index are invisible to other indexes.
 
 ---
 
@@ -35,20 +31,9 @@ If isolation is NOT guaranteed, collection names across different wiki instances
 
 ---
 
-## hybrid — install the Claude Code skill
+## ~~hybrid — install the Claude Code skill~~ DONE (backlog-catchup)
 
-https://github.com/justinstimatze/hybrid (cloned: `~/workspace/hybrid`)
-
-A vocabulary and Claude Code skill for naming the design pattern compost already implements: LLM extracts (Tier 1 lens / Tier 2 reasoner) → typed records accumulate (raw files, wiki frontmatter) → deterministic code filters (classifier rules, qmd scores) → LLM proposes edits → action (commit + PR). There is no library to depend on — the repo is markdown + manifests.
-
-The skill is worth installing: it gives future phase design conversations a shared vocabulary (lens, substrate, gate, reasoner, action, calibration, metabolism) and a 5-phase diagnostic for deciding when the full pattern applies vs. a simpler approach.
-
-**Install:**
-```bash
-ln -s ~/workspace/hybrid/skills/hybrid-loops ~/.claude/skills/hybrid-loops
-```
-
-**When to revisit:** Install now. Reference the vocabulary when designing Phase 5+ adversarial check gate and any future background-metabolism features.
+Symlinked at `~/.claude/skills/hybrid-loops`. Reference its vocabulary (lens, substrate, gate, reasoner, action, calibration, metabolism) when designing future metabolism / background-worker features.
 
 ---
 
@@ -68,7 +53,9 @@ A knowledge base implemented as Go source code where `go build` is the consisten
 
 1. **Disputes as a first-class predicate.** Compost's `ContradictionNote` is a stub that surfaces what the LLM notices in passing. Winze shows what a real version looks like: a typed `Disputes(wiki_page, claim_a, claim_b)` record written to a dedicated log, queryable by page, trackable over time. Phase 5's adversarial check gate should produce structured contradiction records, not free-text observations.
 
-   **Phase 5 status:** adversarial checks now produce structured `Finding` objects with `conflicting_page`, `claim_text`, and `conflicting_claim_text` fields (`checks/runner.py`). The remaining missing piece is `compost claims suggest` — a command that reads these `Finding` objects and writes draft `@Contested TheoryOf` entries to `wiki/claims.kt`.
+   **Phase 5 status:** adversarial checks produce structured `Finding` objects with `conflicting_page`, `claim_text`, and `conflicting_claim_text` fields (`checks/runner.py`). Check runs now also write a JSONL sidecar (`.compost/checks/{slug}.jsonl`).
+
+   **backlog-catchup status:** `compost claims suggest` ships — reads contradiction findings from the JSONL sidecar and writes draft `@Contested TheoryOf` stubs to `wiki/claims.kt`.
 
 2. **Metabolism phase structure.** The dream/bias-audit/calibrate split maps cleanly onto what a compost background worker should do: dream = re-run synthesis on recently changed raw files without new ingest; bias audit = structural health checks on the wiki graph (orphan pages, provenance concentration, stale confidence scores); calibrate = track whether pages flagged as high-confidence actually stay stable.
 
@@ -78,7 +65,7 @@ A knowledge base implemented as Go source code where `go build` is the consisten
 
 **Go-source KB approach:** probably not right for compost's target audience (teams writing markdown), but worth revisiting if the wiki ever needs formal consistency checking beyond frontmatter lint.
 
-**When to revisit:** Phase 5 Kotlin consistency layer shipped. The metabolism phases are the template for Phase 9 `compost tend` subcommands.
+**When to revisit:** Phase 12+. Full metabolism phases (dream/bias-audit/calibrate) need a dedicated design phase once `claims.kt` entries accumulate and recurring patterns emerge.
 
 ---
 
@@ -104,8 +91,7 @@ TheoryOf(subject = authService, predicate = AuthMechanism, value = "session cook
 how they are typed, whether predicates are open or closed). This is non-trivial and should wait
 until there are enough real `claims.kt` examples to see which predicates recur naturally.
 
-**When to revisit:** after the first real wiki instance has accumulated several weeks of
-`claims.kt` entries. The recurring predicate patterns will surface the right vocabulary.
+**When to revisit:** After several weeks of `claims.kt` entries from `compost claims suggest`. The recurring predicate patterns will surface the right vocabulary. Depends on backlog-catchup shipping first.
 
 ---
 
@@ -118,9 +104,13 @@ about:
 - Preserving accurate timestamps from the past
 - Doing this work batch / async so that it can continue loading in historical context while its being used
 
+**When to revisit:** Phase 12+ — needs dedicated design phase covering batch ingest, timestamp preservation, async processing, and progress tracking.
+
 ---
 
 ## Feedback on PRs
 
 A user should be able to leave feedback on a PR for the compost agent to react to and update the PR. Bonus if it can also 
 update the entire process for later iterations.
+
+**When to revisit:** Phase 12+ — needs dedicated design phase.

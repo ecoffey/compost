@@ -160,11 +160,18 @@ def infer_raw_path(repo: Path, branch: str, base: str | None = None) -> Path | N
     return repo / files[0]
 
 
+def branch_slug(branch: str) -> str:
+    """Convert a branch name to a filesystem-safe slug (/ → -, : removed)."""
+    return branch.replace("/", "-").replace(":", "")
+
+
 def write_check_report(repo: Path, branch: str, results: list[CheckResult]) -> Path:
-    """Write a markdown report to .compost/checks/{branch-slug}.md."""
+    """Write a markdown report and JSONL findings sidecar to .compost/checks/."""
+    import dataclasses
+    import json
     from datetime import datetime, timezone
     ts = datetime.now(timezone.utc)
-    slug = branch.replace("/", "-").replace(":", "")
+    slug = branch_slug(branch)
     report_dir = repo / ".compost" / "checks"
     report_dir.mkdir(parents=True, exist_ok=True)
     report_path = report_dir / f"{slug}.md"
@@ -211,6 +218,18 @@ def write_check_report(repo: Path, branch: str, results: list[CheckResult]) -> P
                         lines.append(f'  "{f.conflicting_claim_text}"')
 
     report_path.write_text("\n".join(lines) + "\n")
+
+    # Write JSONL sidecar: one line per Finding across all results.
+    jsonl_path = report_dir / f"{slug}.jsonl"
+    all_findings_flat = [f for r in results for f in r.findings]
+    try:
+        jsonl_path.write_text(
+            "\n".join(json.dumps(dataclasses.asdict(f)) for f in all_findings_flat)
+            + ("\n" if all_findings_flat else "")
+        )
+    except OSError:
+        pass  # Non-fatal: markdown report is the authoritative output.
+
     return report_path
 
 

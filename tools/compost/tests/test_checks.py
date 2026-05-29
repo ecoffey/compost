@@ -6,6 +6,7 @@ qmd_query is intercepted with a hand-written stub (no mocking library).
 """
 from __future__ import annotations
 
+import json
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
@@ -18,8 +19,10 @@ from compost.checks.runner import (
     ChecksConfig,
     Finding,
     _skipped_result,
+    branch_slug,
     infer_raw_path,
     run_checks,
+    write_check_report,
 )
 from compost.checks.provenance import check_provenance
 from compost.checks.human_edit_guard import check_human_edit_guard, _section_headings
@@ -487,3 +490,86 @@ def test_finding_contradiction_has_structured_fields():
     assert f.conflicting_page == "wiki/decisions/0001-stripe.md"
     assert f.claim_text == "Stripe is async"
     assert f.conflicting_claim_text == "Stripe is synchronous"
+
+
+# ── branch_slug ───────────────────────────────────────────────────────────────
+
+
+def test_branch_slug_replaces_slashes_and_colons():
+    assert branch_slug("raw/2026-05-04-payments") == "raw-2026-05-04-payments"
+    assert branch_slug("feat:auth") == "featauth"
+    assert branch_slug("main") == "main"
+
+
+# ── write_check_report JSONL sidecar ─────────────────────────────────────────
+
+
+def test_write_check_report_emits_jsonl(wiki_repo):
+    results = [
+        CheckResult(
+            name="contradiction_scan", status="fail",
+            findings=[
+                Finding(
+                    check="contradiction_scan", severity="fail",
+                    message="conflicting claims detected",
+                    page="wiki/services/payments.md",
+                    conflicting_page="wiki/decisions/0001.md",
+                    claim_text="uses JWT",
+                    conflicting_claim_text="uses sessions",
+                )
+            ],
+        ),
+        CheckResult(name="provenance", status="pass", findings=[]),
+    ]
+    write_check_report(wiki_repo, "raw/2026-05-04-test", results)
+
+    jsonl_path = wiki_repo / ".compost" / "checks" / "raw-2026-05-04-test.jsonl"
+    assert jsonl_path.exists(), "JSONL sidecar not written"
+
+    lines = [l for l in jsonl_path.read_text().splitlines() if l.strip()]
+    assert len(lines) == 1
+    record = json.loads(lines[0])
+    assert record["check"] == "contradiction_scan"
+    assert record["page"] == "wiki/services/payments.md"
+    assert record["claim_text"] == "uses JWT"
+    assert record["conflicting_page"] == "wiki/decisions/0001.md"
+    assert record["conflicting_claim_text"] == "uses sessions"
+
+
+def test_write_check_report_jsonl_empty_when_no_findings(wiki_repo):
+    results = [
+        CheckResult(name="provenance", status="pass", findings=[]),
+        CheckResult(name="scope", status="skipped", findings=[], skip_reason="no raw"),
+    ]
+    write_check_report(wiki_repo, "main", results)
+
+    jsonl_path = wiki_repo / ".compost" / "checks" / "main.jsonl"
+    assert jsonl_path.exists()
+    lines = [l for l in jsonl_path.read_text().splitlines() if l.strip()]
+    assert lines == []
+
+
+def test_write_check_report_jsonl_all_fields_present(wiki_repo):
+    """Every Finding field is serialised — None values included."""
+    results = [
+        CheckResult(
+            name="provenance", status="fail",
+            findings=[
+                Finding(
+                    check="provenance", severity="fail",
+                    message="missing sources",
+                    page="wiki/services/auth.md",
+                )
+            ],
+        )
+    ]
+    write_check_report(wiki_repo, "main", results)
+    jsonl_path = wiki_repo / ".compost" / "checks" / "main.jsonl"
+    record = json.loads(jsonl_path.read_text().strip())
+    assert "check" in record
+    assert "severity" in record
+    assert "message" in record
+    assert "page" in record
+    assert "conflicting_page" in record
+    assert "claim_text" in record
+    assert "conflicting_claim_text" in record
