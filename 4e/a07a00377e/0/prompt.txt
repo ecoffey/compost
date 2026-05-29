@@ -1,0 +1,36 @@
+lets triage them now and address them now in one /plan
+
+---
+
+sorry lets not do phase 11. just triage the backlog items and address the backlog items that should have been done already in one /plan.
+
+---
+
+/implement
+
+---
+
+/implement
+
+---
+
+<ide_opened_file>The user opened the file /Users/eoin/workspace/compost/tools/compost/tests/test_claims.py in the IDE. This may or may not be related to the current task.</ide_opened_file>
+I'd like to use this repo https://github.com/simonw/showboat to generate a "showboat document" for this project. (You can clone the repo to ~/workspace if that makes it easier to research it)
+
+---
+
+1: Yeah, I think I do want to do that
+2: Lets bootstrap a fresh wiki on each invocation of the showboat
+3: demos/showboat.md is great
+
+We'll also have to do things like start a gitea process, verify qmd is installed, etc.
+
+---
+
+<ide_opened_file>The user opened the file /Users/eoin/workspace/compost/tools/compost/tests/test_claims.py in the IDE. This may or may not be related to the current task.</ide_opened_file>
+just use Read
+
+---
+
+<ide_opened_file>The user opened the file /Users/eoin/workspace/compost/demos/build_showboat.sh in the IDE. This may or may not be related to the current task.</ide_opened_file>
+How do I run the showboat.md file?
