@@ -1,0 +1,2 @@
+<ide_opened_file>The user opened the file /Users/eoin/workspace/compost/demos/showboat.md in the IDE. This may or may not be related to the current task.</ide_opened_file>
+lets create an ARCHITECTURE.md that describes the current high level implementation of the compost tool
