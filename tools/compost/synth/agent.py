@@ -129,8 +129,14 @@ def synthesize(
         page_path = item.get("page", "")
         if not page_path:
             continue
-        # Strip qmd:// URI prefix that the LLM may echo back from candidate file keys
-        if page_path.startswith("qmd://"):
+        # Strip qmd:// URI prefix that the LLM may echo back from candidate file keys.
+        # The LLM sometimes returns the full heading format "Title (qmd://path)" —
+        # extract just the URI in that case.
+        import re as _re
+        qmd_match = _re.search(r'qmd://([^\s)]+)', page_path)
+        if qmd_match:
+            page_path = qmd_match.group(1)
+        elif page_path.startswith("qmd://"):
             page_path = page_path[len("qmd://"):]
         is_new_hint = item.get("is_new", False)
         abs_page = repo / page_path

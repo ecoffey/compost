@@ -12,8 +12,13 @@ def check_provenance(repo: Path, changed_wiki_files: list[Path]) -> CheckResult:
     start = time.monotonic()
     findings: list[Finding] = []
 
+    # Infrastructure pages managed by compost itself (not knowledge pages).
+    _INFRA_NAMES = {"index.md", "log.md", "glossary.md"}
+
     for abs_path in changed_wiki_files:
         if not abs_path.exists():
+            continue
+        if abs_path.name in _INFRA_NAMES:
             continue
         fm, _ = parse_frontmatter(abs_path)
         rel = str(abs_path.relative_to(repo))
